@@ -8,13 +8,13 @@ const FEATURES = [
   {
     emoji: "🔤",
     title: "Phonics A–Z",
-    description: "Every letter comes alive with Kòkò's voice and Nigerian word associations.",
+    description: "Every letter comes alive with Kòkò's voice and African word associations children recognise.",
     gradient: "from-amber-400 to-orange-400",
   },
   {
-    emoji: "🇳🇬",
-    title: "Yorùbá & English",
-    description: "\"A is for Apple\" and \"A is for Àgbàdo\" — both languages, every letter.",
+    emoji: "🌍",
+    title: "African Languages",
+    description: "\"A is for Apple\" and \"A is for Àgbàdo\" — English alongside mother-tongue languages.",
     gradient: "from-green-500 to-emerald-400",
   },
   {
@@ -149,11 +149,12 @@ export default function LandingPage() {
                 className="relative z-10 w-full h-full"
               >
                 <Image
-                  src="/ami.png"
-                  alt="Àmì, a Nigerian girl, holding Kòkò her talking parrot"
+                  src="/ami-koko.svg"
+                  alt="Àmì, an African girl, holding Kòkò her talking parrot"
                   fill
                   className="object-contain drop-shadow-2xl"
                   priority
+                  unoptimized
                   sizes="(max-width: 640px) 256px, (max-width: 1024px) 320px, 440px"
                 />
               </motion.div>

@@ -142,11 +142,12 @@ export default function HomePage() {
             className="absolute right-0 bottom-0 w-44 h-56 sm:w-52 sm:h-64"
           >
             <Image
-              src="/ami.png"
+              src="/ami-koko.svg"
               alt="Àmì holding Kòkò the parrot"
               fill
               className="object-contain object-bottom"
               priority
+              unoptimized
               sizes="208px"
             />
           </motion.div>

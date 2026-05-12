@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" fill="none">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="45%" r="55%">
+    <stop offset="0%" stop-color="#FDE68A"/>
+    <stop offset="100%" stop-color="#FEF3C7" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#C68642"/>
+    <stop offset="100%" stop-color="#A0522D"/>
+  </linearGradient>
+  <linearGradient id="dress" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#16A34A"/>
+    <stop offset="100%" stop-color="#14532D"/>
+  </linearGradient>
+  <linearGradient id="parrot" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#4ADE80"/>
+    <stop offset="100%" stop-color="#16A34A"/>
+  </linearGradient>
+</defs>
+
+<!-- Background circle -->
+<circle cx="200" cy="270" r="195" fill="#FEF3C7"/>
+<circle cx="200" cy="270" r="195" fill="url(#bg)"/>
+
+<!-- Sparkles -->
+<circle cx="330" cy="90" r="6" fill="#F59E0B" opacity="0.7"/>
+<circle cx="310" cy="110" r="4" fill="#F43F5E" opacity="0.6"/>
+<circle cx="350" cy="115" r="3" fill="#22C55E" opacity="0.6"/>
+<circle cx="70" cy="120" r="5" fill="#F59E0B" opacity="0.6"/>
+<circle cx="55" cy="100" r="3" fill="#F43F5E" opacity="0.5"/>
+<path d="M340 70 L342 77 L349 77 L343 81 L345 88 L340 84 L335 88 L337 81 L331 77 L338 77Z" fill="#F59E0B" opacity="0.8"/>
+<path d="M65 85 L67 91 L73 91 L68 95 L70 101 L65 97 L60 101 L62 95 L57 91 L63 91Z" fill="#F43F5E" opacity="0.7"/>
+
+<!-- ═══ BODY / DRESS ═══ -->
+<!-- Main dress shape -->
+<path d="M130 295 Q118 370 112 460 L288 460 Q282 370 270 295 Q248 318 200 320 Q152 318 130 295Z" fill="url(#dress)"/>
+<!-- Dress pattern - adire/ankara style dots -->
+<circle cx="160" cy="340" r="5" fill="#FEF3C7" opacity="0.4"/>
+<circle cx="180" cy="360" r="5" fill="#FEF3C7" opacity="0.4"/>
+<circle cx="200" cy="345" r="5" fill="#FEF3C7" opacity="0.4"/>
+<circle cx="220" cy="365" r="5" fill="#FEF3C7" opacity="0.4"/>
+<circle cx="240" cy="342" r="5" fill="#FEF3C7" opacity="0.4"/>
+<circle cx="155" cy="385" r="4" fill="#FEF3C7" opacity="0.3"/>
+<circle cx="175" cy="400" r="4" fill="#FEF3C7" opacity="0.3"/>
+<circle cx="200" cy="388" r="4" fill="#FEF3C7" opacity="0.3"/>
+<circle cx="225" cy="402" r="4" fill="#FEF3C7" opacity="0.3"/>
+<circle cx="245" cy="382" r="4" fill="#FEF3C7" opacity="0.3"/>
+<!-- Dress collar / neckline detail -->
+<path d="M175 295 Q200 308 225 295" stroke="#F59E0B" stroke-width="3" fill="none" stroke-linecap="round"/>
+<!-- Dress hem pattern -->
+<path d="M112 440 Q160 430 200 435 Q240 430 288 440" stroke="#F59E0B" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<path d="M113 448 Q160 438 200 443 Q240 438 287 448" stroke="#FCD34D" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.7"/>
+
+<!-- ═══ NECK ═══ -->
+<rect x="185" y="272" width="30" height="28" rx="10" fill="url(#skin)"/>
+
+<!-- ═══ HEAD ═══ -->
+<ellipse cx="200" cy="210" rx="58" ry="62" fill="url(#skin)"/>
+<!-- Face highlight -->
+<ellipse cx="200" cy="215" rx="46" ry="50" fill="#B8732A" opacity="0.25"/>
+
+<!-- ═══ HAIR — big natural afro ═══ -->
+<!-- Main afro mass -->
+<ellipse cx="200" cy="158" rx="68" ry="58" fill="#1C1917"/>
+<!-- Afro texture bumps -->
+<circle cx="148" cy="155" r="24" fill="#1C1917"/>
+<circle cx="252" cy="155" r="24" fill="#1C1917"/>
+<circle cx="200" cy="128" r="26" fill="#1C1917"/>
+<circle cx="168" cy="138" r="20" fill="#1C1917"/>
+<circle cx="232" cy="138" r="20" fill="#1C1917"/>
+<circle cx="148" cy="175" r="18" fill="#1C1917"/>
+<circle cx="252" cy="175" r="18" fill="#1C1917"/>
+<!-- Hair sheen -->
+<ellipse cx="185" cy="140" rx="18" ry="10" fill="#292524" opacity="0.5"/>
+<!-- Hair accessories — colourful beads -->
+<circle cx="145" cy="168" r="6" fill="#F59E0B"/>
+<circle cx="157" cy="155" r="5" fill="#F43F5E"/>
+<circle cx="168" cy="145" r="5" fill="#22C55E"/>
+<circle cx="180" cy="138" r="5" fill="#F59E0B"/>
+<circle cx="145" cy="182" r="5" fill="#A78BFA"/>
+
+<!-- ═══ FACE ═══ -->
+<!-- Eyes -->
+<ellipse cx="180" cy="210" rx="10" ry="11" fill="white"/>
+<ellipse cx="220" cy="210" rx="10" ry="11" fill="white"/>
+<circle cx="182" cy="211" r="7" fill="#1C1917"/>
+<circle cx="222" cy="211" r="7" fill="#1C1917"/>
+<!-- Iris highlight -->
+<circle cx="184" cy="209" r="2.5" fill="white"/>
+<circle cx="224" cy="209" r="2.5" fill="white"/>
+<!-- Eyelashes top -->
+<path d="M170 203 Q175 198 180 203" stroke="#1C1917" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M210 203 Q215 198 220 203" stroke="#1C1917" stroke-width="2" fill="none" stroke-linecap="round"/>
+<!-- Eyebrows -->
+<path d="M170 197 Q180 192 190 196" stroke="#1C1917" stroke-width="3" fill="none" stroke-linecap="round"/>
+<path d="M210 196 Q220 192 230 197" stroke="#1C1917" stroke-width="3" fill="none" stroke-linecap="round"/>
+<!-- Nose -->
+<ellipse cx="200" cy="226" rx="6" ry="4" fill="#8B5E3C" opacity="0.5"/>
+<path d="M194 224 Q200 230 206 224" stroke="#8B5E3C" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.6"/>
+<!-- Big smile -->
+<path d="M183 240 Q200 258 217 240" stroke="#7C3D12" stroke-width="3" fill="none" stroke-linecap="round"/>
+<!-- Teeth -->
+<path d="M186 241 Q200 254 214 241 Q200 248 186 241Z" fill="white" opacity="0.9"/>
+<!-- Dimples -->
+<circle cx="178" cy="238" r="3.5" fill="#8B5E3C" opacity="0.25"/>
+<circle cx="222" cy="238" r="3.5" fill="#8B5E3C" opacity="0.25"/>
+<!-- Cheek blush -->
+<ellipse cx="170" cy="232" rx="12" ry="7" fill="#F43F5E" opacity="0.15"/>
+<ellipse cx="230" cy="232" rx="12" ry="7" fill="#F43F5E" opacity="0.15"/>
+
+<!-- ═══ ARMS ═══ -->
+<!-- Right arm (viewer's left) — extended to hold Kòkò -->
+<path d="M130 295 Q95 280 62 272" stroke="url(#skin)" stroke-width="26" stroke-linecap="round" fill="none"/>
+<!-- Right hand -->
+<ellipse cx="58" cy="270" rx="18" ry="14" fill="#C68642"/>
+<!-- Fingers -->
+<ellipse cx="44" cy="262" rx="9" ry="7" fill="#C68642"/>
+<ellipse cx="42" cy="274" rx="9" ry="7" fill="#C68642"/>
+<ellipse cx="46" cy="284" rx="9" ry="7" fill="#C68642"/>
+<!-- Left arm -->
+<path d="M270 295 Q295 310 315 330" stroke="url(#skin)" stroke-width="24" stroke-linecap="round" fill="none"/>
+<!-- Left hand -->
+<ellipse cx="318" cy="334" rx="16" ry="13" fill="#C68642"/>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- KÒKÒ THE PARROT                                 -->
+<!-- ═══════════════════════════════════════════════ -->
+
+<!-- Tail feathers -->
+<path d="M30 278 Q8 305 4 335 Q18 320 30 328 Q22 308 35 295Z" fill="#15803D"/>
+<path d="M28 282 Q3 312 0 345 Q16 328 26 337 Q20 315 32 300Z" fill="#166534" opacity="0.8"/>
+<path d="M35 275 Q18 298 16 322 Q28 310 36 318 Q30 300 40 288Z" fill="#22C55E" opacity="0.6"/>
+
+<!-- Body -->
+<ellipse cx="52" cy="252" rx="28" ry="32" fill="url(#parrot)"/>
+
+<!-- Wing -->
+<path d="M28 248 Q18 228 30 210 Q44 220 52 235Z" fill="#15803D"/>
+<path d="M26 252 Q14 230 22 210 Q38 216 48 232Z" fill="#166534" opacity="0.7"/>
+<!-- Wing feather details -->
+<path d="M28 245 Q20 228 28 214" stroke="#4ADE80" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>
+<path d="M32 248 Q24 230 32 216" stroke="#4ADE80" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>
+<path d="M36 250 Q28 232 36 218" stroke="#86EFAC" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+
+<!-- Chest — bright yellow -->
+<ellipse cx="60" cy="258" rx="15" ry="18" fill="#FCD34D"/>
+<!-- Chest sheen -->
+<ellipse cx="57" cy="252" rx="7" ry="9" fill="#FDE68A" opacity="0.6"/>
+
+<!-- Head -->
+<circle cx="64" cy="224" r="22" fill="#22C55E"/>
+<!-- Red forehead patch -->
+<ellipse cx="64" cy="212" rx="13" ry="10" fill="#DC2626"/>
+<!-- Red patch highlight -->
+<ellipse cx="61" cy="209" rx="6" ry="4" fill="#EF4444" opacity="0.5"/>
+<!-- Yellow cheek patch -->
+<ellipse cx="74" cy="228" rx="9" ry="6" fill="#FCD34D"/>
+
+<!-- Eye -->
+<circle cx="72" cy="221" r="8" fill="white"/>
+<circle cx="73" cy="221" r="5" fill="#1C1917"/>
+<circle cx="74" cy="220" r="2" fill="white"/>
+<!-- Eye ring -->
+<circle cx="72" cy="221" r="8" stroke="#FCD34D" stroke-width="2" fill="none"/>
+
+<!-- Beak -->
+<path d="M78 225 Q92 221 90 231 Q84 236 78 230Z" fill="#F59E0B"/>
+<path d="M78 227 Q90 223 88 231" stroke="#D97706" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<!-- Beak nostril -->
+<circle cx="83" cy="224" r="1.5" fill="#D97706" opacity="0.6"/>
+
+<!-- Feet gripping Àmì's arm -->
+<path d="M42 268 Q36 278 30 276" stroke="#D97706" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+<path d="M46 272 Q40 283 34 282" stroke="#D97706" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+<path d="M50 274 Q46 286 40 286" stroke="#D97706" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+<!-- Back toe -->
+<path d="M40 266 Q34 260 30 262" stroke="#D97706" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- SPEECH BUBBLE FROM KÒKÒ                         -->
+<!-- ═══════════════════════════════════════════════ -->
+<path d="M95 175 Q95 148 130 148 Q165 148 165 175 Q165 198 130 198 Q116 198 106 193 L95 202 L100 190 Q95 185 95 175Z"
+  fill="white" stroke="#F59E0B" stroke-width="2.5"/>
+<!-- Bubble text -->
+<text x="130" y="170" text-anchor="middle" font-size="11" fill="#92400E" font-weight="bold" font-family="sans-serif">A is for</text>
+<text x="130" y="185" text-anchor="middle" font-size="12" fill="#166534" font-weight="bold" font-family="sans-serif">Àgbàdo! 🌽</text>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- GROUND SHADOW                                   -->
+<!-- ═══════════════════════════════════════════════ -->
+<ellipse cx="200" cy="462" rx="100" ry="12" fill="#F59E0B" opacity="0.15"/>
+
+</svg>
