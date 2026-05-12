@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import TryALetter from "@/components/landing/TryALetter";
 
 const FEATURES = [
   {
@@ -196,6 +197,9 @@ export default function LandingPage() {
           ))}
         </motion.div>
       </div>
+
+      {/* ── Interactive demo ────────────────────────────────── */}
+      <TryALetter />
 
       {/* ── Features ───────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
