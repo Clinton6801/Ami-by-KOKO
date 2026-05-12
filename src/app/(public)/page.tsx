@@ -33,14 +33,14 @@ const FEATURES = [
 
 const STEPS = [
   { icon: "👩‍👦", step: "1", title: "Create a free account", desc: "Sign up as a parent in under a minute. Add your child's name and age." },
-  { icon: "🌍", step: "2", title: "Pick a language", desc: "Start with English (free forever). Unlock Yorùbá with a simple subscription." },
+  { icon: "🌍", step: "2", title: "Pick a language", desc: "Start with English (free forever). Unlock African mother-tongue languages with a simple subscription." },
   { icon: "🦜", step: "3", title: "Learn with Kòkò", desc: "Tap letters, hear sounds, trace shapes, and help Kòkò find his voice." },
 ];
 
 const TESTIMONIALS = [
-  { quote: "My daughter asks to use it every morning before school.", name: "Ngozi A.", location: "Lagos", avatar: "👩🏾" },
-  { quote: "Finally an app that teaches Yorùbá the right way.", name: "Tayo O.", location: "Ibadan", avatar: "👨🏾" },
-  { quote: "Our pupils love Kòkò. It's the first thing they ask for.", name: "Mrs. Emeka", location: "Abuja — Primary School Teacher", avatar: "👩🏾‍🏫" },
+  { quote: "My daughter asks to use it every morning before school.", name: "Ngozi A.", location: "Lagos, Nigeria", avatar: "👩🏾" },
+  { quote: "Finally an app that teaches our language the right way.", name: "Amara K.", location: "Accra, Ghana", avatar: "👨🏾" },
+  { quote: "Our pupils love Kòkò. It's the first thing they ask for.", name: "Mrs. Osei", location: "Nairobi, Kenya — Primary School Teacher", avatar: "👩🏾‍🏫" },
 ];
 
 export default function LandingPage() {
@@ -84,7 +84,7 @@ export default function LandingPage() {
               transition={{ delay: 0.2 }}
               className="inline-flex items-center gap-2 bg-green-100 text-green-800 text-xs sm:text-sm font-semibold px-4 py-2 rounded-full w-fit border border-green-200"
             >
-              🇳🇬 Made for Nigerian children
+              🌍 Built for African children
             </motion.span>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-stone-900 leading-[1.1]">
@@ -98,13 +98,13 @@ export default function LandingPage() {
                   className="absolute bottom-1 left-0 right-0 h-3 bg-amber-200 rounded-full -z-0 origin-left"
                 />
               </span>
-              for Nigerian kids
+              for African kids
             </h1>
 
             <p className="text-base sm:text-lg text-stone-600 max-w-md leading-relaxed">
               Àmì and her talking parrot Kòkò guide children aged 0–8 through
-              phonics in <strong className="text-stone-800">English and Yorùbá</strong> —
-              with Nigerian names, foods, and stories they recognise.
+              phonics in <strong className="text-stone-800">English and African mother-tongue languages</strong> —
+              with names, foods, and stories from across the continent.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -184,7 +184,7 @@ export default function LandingPage() {
             <span key={i} className="flex gap-8 text-white text-sm font-semibold">
               <span>🌟 English Phonics — Free</span>
               <span>·</span>
-              <span>🇳🇬 Yorùbá coming</span>
+              <span>🌍 African Languages Coming</span>
               <span>·</span>
               <span>🦜 Learn with Kòkò</span>
               <span>·</span>
@@ -209,7 +209,7 @@ export default function LandingPage() {
             Everything a child needs to love reading
           </h2>
           <p className="text-stone-500 max-w-xl mx-auto text-sm sm:text-base">
-            Built around how Nigerian children actually learn — through sound, story, and play.
+            Built around how African children actually learn — through sound, story, and play.
           </p>
         </motion.div>
 
@@ -382,7 +382,7 @@ export default function LandingPage() {
             <span className="font-extrabold text-white">Àmì by Kòkò</span>
           </div>
           <p className="text-sm text-center text-stone-500">
-            Made with ❤️ for Nigerian children everywhere.
+            Made with ❤️ for African children everywhere.
           </p>
           <div className="flex gap-5 sm:gap-6 text-sm">
             <a href="mailto:hello@amibykoko.com" className="hover:text-white transition">Contact</a>
