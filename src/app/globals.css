@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* ─── Àmì by Kòkò brand tokens ──────────────────────────────────────────── */
+@theme {
+  /* Brand colours */
+  --color-amber-koko: #F59E0B;     /* Kòkò's warm amber — primary */
+  --color-green-ami: #166534;      /* Àmì's forest green — secondary */
+  --color-coral-celebrate: #F43F5E; /* Celebration accent */
+  --color-cream-bg: #FEFCE8;       /* Soft cream background */
+
+  /* Typography */
+  --font-display: var(--font-geist-sans, sans-serif);
+  --font-body: var(--font-geist-sans, sans-serif);
+}
+
+/* ─── Base styles ────────────────────────────────────────────────────────── */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-cream-bg);
+  font-family: var(--font-body);
+  scroll-behavior: smooth;
+}
+
+/* Minimum 48×48px tap targets for all interactive elements */
+button,
+a,
+[role="button"] {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* High-contrast focus ring for accessibility */
+:focus-visible {
+  outline: 3px solid var(--color-amber-koko);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
