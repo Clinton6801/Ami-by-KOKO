@@ -1,50 +1,102 @@
-/**
- * Phonics language selector — child picks English or Yoruba.
- */
-import Link from "next/link";
-import { MVP_LANGUAGES } from "@/types";
+"use client";
 
-const LANGUAGE_META: Record<string, { label: string; emoji: string; free: boolean }> = {
-  english: { label: "English", emoji: "🇬🇧", free: true },
-  yoruba: { label: "Yorùbá", emoji: "🇳🇬", free: false },
-};
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { openPaystackPopup, generateReference, PRICING } from "@/lib/paystack/client";
+
+const LANGUAGES = [
+  { code: "english", label: "English",  emoji: "🇬🇧", free: true,  description: "Full A–Z phonics" },
+  { code: "yoruba",  label: "Yorùbá",   emoji: "🇳🇬", free: false, description: "₦1,500/month" },
+];
 
 export default function PhonicsLanguagePage() {
-  return (
-    <main className="flex min-h-screen flex-col items-center gap-8 px-4 py-12">
-      <h1 className="text-3xl font-bold text-stone-800">
-        Pick a Language
-      </h1>
-      <p className="text-stone-600">Which language do you want to learn today?</p>
+  const supabase = createClient();
+  const [hasYoruba, setHasYoruba] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
 
-      <div className="grid w-full max-w-sm gap-4">
-        {MVP_LANGUAGES.map((lang) => {
-          const meta = LANGUAGE_META[lang];
+  useEffect(() => {
+    async function check() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setChecking(false); return; }
+      setUserEmail(user.email ?? null);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from("subscriptions")
+        .select("active")
+        .eq("profile_id", user.id)
+        .eq("active", true)
+        .maybeSingle();
+
+      setHasYoruba(!!data);
+      setChecking(false);
+    }
+    check();
+  }, [supabase]);
+
+  function handleUnlock() {
+    if (!userEmail) return;
+    openPaystackPopup({
+      email: userEmail,
+      amount: PRICING.individual_monthly,
+      reference: generateReference("yoruba"),
+      onSuccess: (ref) => {
+        console.log("Payment ref:", ref);
+        alert("Payment successful! Yorùbá is now unlocked. Please refresh.");
+        // TODO: server-side webhook to activate subscription
+      },
+      onClose: () => {},
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-6 pb-10">
+      <div className="text-center">
+        <h1 className="text-2xl font-extrabold text-stone-800">Pick a Language</h1>
+        <p className="text-stone-500 text-sm mt-1">Which language do you want to learn today?</p>
+      </div>
+
+      <div className="flex flex-col gap-3 max-w-sm mx-auto w-full">
+        {LANGUAGES.map(lang => {
+          const unlocked = lang.free || hasYoruba;
+
+          if (unlocked) {
+            return (
+              <Link key={lang.code} href={`/phonics/${lang.code}`}
+                className="flex items-center justify-between bg-white rounded-3xl p-5 shadow-md ring-1 ring-amber-100 transition hover:scale-[1.02] active:scale-[0.98]">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{lang.emoji}</span>
+                  <div>
+                    <p className="font-bold text-stone-800">{lang.label}</p>
+                    <p className="text-xs text-stone-500">{lang.description}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full">
+                  {lang.free ? "Free" : "Unlocked ✓"}
+                </span>
+              </Link>
+            );
+          }
+
           return (
-            <Link
-              key={lang}
-              href={`/phonics/${lang}`}
-              className="focus-ring flex items-center justify-between rounded-3xl border-2 border-amber-200 bg-amber-50 p-5 transition hover:scale-[1.02] active:scale-[0.98]"
-            >
+            <button key={lang.code} onClick={handleUnlock} disabled={checking}
+              className="flex items-center justify-between bg-white rounded-3xl p-5 shadow-md ring-1 ring-stone-100 transition hover:scale-[1.02] active:scale-[0.98] w-full text-left opacity-90">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{meta.emoji}</span>
-                <span className="text-xl font-semibold text-stone-800">
-                  {meta.label}
-                </span>
+                <span className="text-3xl">{lang.emoji}</span>
+                <div>
+                  <p className="font-bold text-stone-800">{lang.label}</p>
+                  <p className="text-xs text-stone-500">{lang.description}</p>
+                </div>
               </div>
-              {meta.free ? (
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                  Free
-                </span>
-              ) : (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-                  Premium
-                </span>
-              )}
-            </Link>
+              <span className="text-xs font-bold text-white bg-amber-500 px-3 py-1 rounded-full flex-shrink-0">
+                🔒 Unlock
+              </span>
+            </button>
           );
         })}
       </div>
-    </main>
+    </div>
   );
 }

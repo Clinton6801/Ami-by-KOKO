@@ -1,14 +1,8 @@
 "use client";
 
-/**
- * useProgress — reads and updates a child's phonics progress.
- */
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { LetterProgress, Language } from "@/types";
-import type { Database } from "@/lib/supabase/database.types";
-
-type ProgressRow = Database["public"]["Tables"]["progress"]["Row"];
 
 export function useProgress(childId: string | null, language: Language) {
   const supabase = createClient();
@@ -17,98 +11,75 @@ export function useProgress(childId: string | null, language: Language) {
 
   useEffect(() => {
     if (!childId) return;
+    let cancelled = false;
 
-    async function fetchProgress() {
+    async function fetch() {
       setLoading(true);
-      const { data } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
         .from("progress")
         .select("*")
-        .eq("child_id", childId!)
-        .eq("language", language)
-        .returns<ProgressRow[]>();
-
-      setProgress((data as LetterProgress[]) ?? []);
-      setLoading(false);
+        .eq("child_id", childId)
+        .eq("language", language);
+      if (!cancelled) {
+        setProgress((data as LetterProgress[]) ?? []);
+        setLoading(false);
+      }
     }
-
-    fetchProgress();
+    fetch();
+    return () => { cancelled = true; };
   }, [childId, language, supabase]);
 
-  /** Records that a child heard a letter sound */
-  const recordHeard = useCallback(
-    async (letter: string) => {
+  /** Upsert a progress row — called on heard / correct / traced */
+  const upsertProgress = useCallback(
+    async (letter: string, patch: Partial<Omit<LetterProgress, "id" | "child_id" | "language" | "letter">>) => {
       if (!childId) return;
 
-      const existing = progress.find(
-        (p) => p.letter === letter && p.language === language
-      );
+      const existing = progress.find(p => p.letter === letter);
 
       if (existing) {
-        await supabase
-          .from("progress")
-          .update({
-            heard_count: existing.heard_count + 1,
-            last_activity: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
+        const updated = { ...patch, last_activity: new Date().toISOString() };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from("progress").update(updated).eq("id", existing.id);
+        setProgress(prev => prev.map(p => p.id === existing.id ? { ...p, ...updated } : p));
       } else {
-        await supabase.from("progress").insert({
+        const newRow = {
           child_id: childId,
           language,
           letter,
-          heard_count: 1,
-        });
-      }
-
-      setProgress((prev) => {
-        if (existing) {
-          return prev.map((p) =>
-            p.id === existing.id
-              ? { ...p, heard_count: p.heard_count + 1 }
-              : p
-          );
-        }
-        return prev;
-      });
-    },
-    [childId, language, progress, supabase]
-  );
-
-  /** Records that a child traced a letter — mastered after 3 traces */
-  const recordTraced = useCallback(
-    async (letter: string) => {
-      if (!childId) return;
-
-      const existing = progress.find(
-        (p) => p.letter === letter && p.language === language
-      );
-
-      if (existing) {
-        const newTracedCount = existing.traced_count + 1;
-        const mastered = newTracedCount >= 3;
-
-        await supabase
-          .from("progress")
-          .update({
-            traced_count: newTracedCount,
-            mastered,
-            last_activity: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-
-        setProgress((prev) =>
-          prev.map((p) =>
-            p.id === existing.id
-              ? { ...p, traced_count: newTracedCount, mastered }
-              : p
-          )
-        );
+          heard_count: 0,
+          traced_count: 0,
+          mastered: false,
+          ...patch,
+          last_activity: new Date().toISOString(),
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase as any).from("progress").insert(newRow).select().single();
+        if (data) setProgress(prev => [...prev, data as LetterProgress]);
       }
     },
     [childId, language, progress, supabase]
   );
 
-  const masteredCount = progress.filter((p) => p.mastered).length;
+  const recordHeard = useCallback((letter: string) => {
+    const existing = progress.find(p => p.letter === letter);
+    return upsertProgress(letter, { heard_count: (existing?.heard_count ?? 0) + 1 });
+  }, [progress, upsertProgress]);
 
-  return { progress, masteredCount, recordHeard, recordTraced, loading };
+  const recordCorrect = useCallback((letter: string) => {
+    const existing = progress.find(p => p.letter === letter);
+    const newCount = (existing?.heard_count ?? 0) + 1;
+    return upsertProgress(letter, { heard_count: newCount, mastered: true });
+  }, [progress, upsertProgress]);
+
+  const recordTraced = useCallback((letter: string) => {
+    const existing = progress.find(p => p.letter === letter);
+    const newCount = (existing?.traced_count ?? 0) + 1;
+    return upsertProgress(letter, { traced_count: newCount, mastered: newCount >= 3 });
+  }, [progress, upsertProgress]);
+
+  const masteredLetters = progress.filter(p => p.mastered).map(p => p.letter);
+  const masteredCount = masteredLetters.length;
+
+  return { progress, masteredCount, masteredLetters, recordHeard, recordCorrect, recordTraced, loading };
 }

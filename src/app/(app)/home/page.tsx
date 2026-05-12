@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import CreateChildModal from "@/components/ui/CreateChildModal";
+import { useProgress } from "@/hooks/useProgress";
 import type { Child } from "@/types";
 
 const MODES = [
@@ -41,8 +42,12 @@ const MODES = [
 export default function HomePage() {
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
-  const [child, setChild] = useState<Child | null | undefined>(undefined); // undefined = loading
+  const [child, setChild] = useState<Child | null | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
+
+  const { masteredCount, masteredLetters } = useProgress(child?.id ?? null, "english");
+  const STORY_LETTERS = ["A","B","C","D","E","F","G","H","I","J"];
+  const shardsFound = STORY_LETTERS.filter(l => masteredLetters.includes(l)).length;
 
   useEffect(() => {
     async function load() {
@@ -183,7 +188,7 @@ export default function HomePage() {
         <div className="px-4 mt-8">
           <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100 flex items-center justify-around">
             <div className="flex flex-col items-center gap-1">
-              <span className="text-2xl font-extrabold text-amber-500">0</span>
+              <span className="text-2xl font-extrabold text-amber-500">{masteredCount}</span>
               <span className="text-xs text-stone-500">Letters learnt</span>
             </div>
             <div className="w-px h-10 bg-stone-100" />
@@ -193,7 +198,7 @@ export default function HomePage() {
             </div>
             <div className="w-px h-10 bg-stone-100" />
             <div className="flex flex-col items-center gap-1">
-              <span className="text-2xl font-extrabold text-rose-400">0/10</span>
+              <span className="text-2xl font-extrabold text-rose-400">{shardsFound}/10</span>
               <span className="text-xs text-stone-500">Shards found</span>
             </div>
           </div>
