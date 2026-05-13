@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useChild } from "@/hooks/useChild";
 import CreateChildModal from "@/components/ui/CreateChildModal";
+import EditChildModal from "@/components/ui/EditChildModal";
 import { AnimatePresence } from "framer-motion";
 import { openPaystackPopup, generateReference, PRICING } from "@/lib/paystack/client";
+import type { Child } from "@/types";
 
 export default function SettingsPage() {
   const router = useRouter();

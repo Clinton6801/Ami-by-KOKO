@@ -1,18 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useChild } from "@/hooks/useChild";
 import { useProgress } from "@/hooks/useProgress";
-import { motion } from "framer-motion";
+import { useStreak } from "@/hooks/useStreak";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { LETTER_DATA } from "@/lib/audio/clips";
+import EditChildModal from "@/components/ui/EditChildModal";
+import type { Child } from "@/types";
 
 const ALPHABET = Object.keys(LETTER_DATA);
 
 export default function ParentDashboardPage() {
-  const { children, activeChild, selectChild } = useChild();
+  const { children, activeChild, selectChild, updateChild, refresh } = useChild();
   const { progress, masteredCount, loading } = useProgress(activeChild?.id ?? null, "english");
+  const { streak } = useStreak(activeChild?.id);
+  const [editingChild, setEditingChild] = useState<Child | null>(null);
 
-  const streak = 0; // TODO: calculate from sessions table
   const totalLetters = ALPHABET.length;
   const pct = Math.round((masteredCount / totalLetters) * 100);
 
@@ -22,7 +27,7 @@ export default function ParentDashboardPage() {
 
       {/* Child switcher */}
       {children.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           {children.map(child => (
             <button key={child.id} onClick={() => selectChild(child)}
               className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-sm font-semibold transition ${
@@ -34,6 +39,14 @@ export default function ParentDashboardPage() {
               {child.name}
             </button>
           ))}
+
+          {/* Edit active child */}
+          {activeChild && (
+            <button onClick={() => setEditingChild(activeChild)}
+              className="flex items-center gap-1 px-3 py-2 rounded-2xl text-xs font-semibold text-stone-500 bg-white ring-1 ring-stone-200 hover:bg-stone-50 transition">
+              ✏️ Edit
+            </button>
+          )}
         </div>
       )}
 
@@ -50,8 +63,8 @@ export default function ParentDashboardPage() {
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "Mastered", value: masteredCount, colour: "text-amber-500", icon: "⭐" },
-              { label: "Streak", value: `${streak}d`, colour: "text-green-500", icon: "🔥" },
-              { label: "Progress", value: `${pct}%`, colour: "text-rose-400", icon: "📈" },
+              { label: "Day streak", value: streak > 0 ? `${streak}🔥` : "0", colour: "text-green-500", icon: "🔥" },
+              { label: "Progress",  value: `${pct}%`,   colour: "text-rose-400",  icon: "📈" },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-2xl p-3 shadow-sm ring-1 ring-stone-100 flex flex-col items-center gap-1">
                 <span className="text-xl">{s.icon}</span>
@@ -68,16 +81,29 @@ export default function ParentDashboardPage() {
               <span>{masteredCount}/{totalLetters} letters</span>
             </div>
             <div className="h-3 bg-stone-100 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.8 }}
-              />
+              <motion.div className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"
+                initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }}/>
             </div>
           </div>
 
-          {/* Letter grid — mastered vs not */}
+          {/* Streak info */}
+          {streak > 0 && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-3xl p-4 ring-1 ring-green-100 flex items-center gap-3">
+              <span className="text-3xl">🔥</span>
+              <div>
+                <p className="font-extrabold text-green-800">
+                  {streak} day streak!
+                </p>
+                <p className="text-green-600 text-xs">
+                  {streak >= 7 ? "Amazing consistency! Keep it up!" :
+                   streak >= 3 ? "Great habit forming!" :
+                   "Keep coming back every day!"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Letter grid */}
           <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
             <p className="text-sm font-bold text-stone-700 mb-3">Letter Progress</p>
             {loading ? (
@@ -90,7 +116,7 @@ export default function ParentDashboardPage() {
                   const heard = (p?.heard_count ?? 0) > 0;
                   return (
                     <div key={letter}
-                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold
+                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold cursor-default
                         ${mastered ? "bg-amber-400 text-white" : heard ? "bg-amber-100 text-amber-700" : "bg-stone-100 text-stone-400"}`}
                       title={mastered ? "Mastered" : heard ? "In progress" : "Not started"}>
                       {letter}
@@ -99,26 +125,37 @@ export default function ParentDashboardPage() {
                 })}
               </div>
             )}
-            <div className="flex gap-3 mt-3 text-xs text-stone-500">
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 inline-block" /> Mastered</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 inline-block" /> In progress</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-stone-100 inline-block" /> Not started</span>
+            <div className="flex gap-3 mt-3 text-xs text-stone-500 flex-wrap">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 inline-block"/> Mastered</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 inline-block"/> In progress</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-stone-100 inline-block"/> Not started</span>
             </div>
           </div>
 
           {/* Subscription */}
           <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
             <p className="text-sm font-bold text-stone-700 mb-2">Subscription</p>
-            <p className="text-stone-500 text-sm">
-              Free plan — English phonics included.
-            </p>
-            <Link href="/settings"
-              className="inline-flex items-center gap-1 mt-2 text-amber-600 font-semibold text-sm hover:underline">
+            <p className="text-stone-500 text-sm">Free plan — English phonics included.</p>
+            <Link href="/settings" className="inline-flex items-center gap-1 mt-2 text-amber-600 font-semibold text-sm hover:underline">
               Upgrade to unlock Yorùbá →
             </Link>
           </div>
         </>
       )}
+
+      {/* Edit child modal */}
+      <AnimatePresence>
+        {editingChild && (
+          <EditChildModal
+            child={editingChild}
+            onSaved={(updated) => {
+              updateChild(updated);
+              setEditingChild(null);
+            }}
+            onClose={() => setEditingChild(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

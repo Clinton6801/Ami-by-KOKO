@@ -1,14 +1,6 @@
 "use client";
 
-/**
- * useChild — fetches and manages the active child profile.
- *
- * Cross-device persistence strategy:
- * - Primary: last_used_child_id stored in the profiles table (server-side)
- * - Fallback: localStorage (for instant restore before DB responds)
- * - If no saved preference, defaults to the first child
- */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Child } from "@/types";
 
@@ -19,47 +11,55 @@ export function useChild() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchChildren() {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+  const fetchChildren = useCallback(async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("children")
-        .select("*")
-        .eq("parent_id", user.id)
-        .order("created_at", { ascending: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("children")
+      .select("*")
+      .eq("parent_id", user.id)
+      .order("created_at", { ascending: true });
 
-      if (error) {
-        setError(error.message);
-      } else {
-        const kids = (data ?? []) as Child[];
-        setChildren(kids);
+    if (error) {
+      setError(error.message);
+    } else {
+      const kids = (data ?? []) as Child[];
+      setChildren(kids);
 
-        // Restore from localStorage first (instant), then verify
-        const savedId = typeof window !== "undefined"
-          ? localStorage.getItem("activeChildId")
-          : null;
-        const saved = kids.find(c => c.id === savedId);
-        setActiveChild(saved ?? kids[0] ?? null);
-      }
-
-      setLoading(false);
+      const savedId = typeof window !== "undefined"
+        ? localStorage.getItem("activeChildId")
+        : null;
+      const saved = kids.find(c => c.id === savedId);
+      setActiveChild(prev => {
+        // If we already have an active child, keep it updated
+        if (prev) {
+          const refreshed = kids.find(c => c.id === prev.id);
+          return refreshed ?? saved ?? kids[0] ?? null;
+        }
+        return saved ?? kids[0] ?? null;
+      });
     }
-
-    fetchChildren();
+    setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => { fetchChildren(); }, [fetchChildren]);
+
   function selectChild(child: Child) {
     setActiveChild(child);
-    // Persist in localStorage for fast restore
     if (typeof window !== "undefined") {
       localStorage.setItem("activeChildId", child.id);
     }
   }
 
-  return { children, activeChild, selectChild, loading, error };
+  /** Call after editing a child to update local state without a full refetch */
+  function updateChild(updated: Child) {
+    setChildren(prev => prev.map(c => c.id === updated.id ? updated : c));
+    if (activeChild?.id === updated.id) setActiveChild(updated);
+  }
+
+  return { children, activeChild, selectChild, updateChild, refresh: fetchChildren, loading, error };
 }
