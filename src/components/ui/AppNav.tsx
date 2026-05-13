@@ -24,6 +24,7 @@ export default function AppNav({ profile }: AppNavProps) {
   const supabase = createClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const isHome = pathname === "/home";
   const currentLabel = Object.entries(MODE_LABELS).find(([key]) => pathname.startsWith(key))?.[1];
@@ -127,13 +128,26 @@ export default function AppNav({ profile }: AppNavProps) {
             </Link>
 
             <div className="border-t border-stone-100 mt-1 pt-1">
-              <button
-                onClick={handleSignOut}
-                disabled={signingOut}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition disabled:opacity-60"
-              >
-                <span>🚪</span> {signingOut ? "Signing out…" : "Sign out"}
-              </button>
+              {confirmSignOut ? (
+                <div className="px-4 py-2">
+                  <p className="text-xs text-stone-600 mb-2 font-medium">Sign out?</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmSignOut(false)}
+                      className="flex-1 text-xs py-1.5 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition">
+                      Cancel
+                    </button>
+                    <button onClick={handleSignOut} disabled={signingOut}
+                      className="flex-1 text-xs py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition disabled:opacity-60">
+                      {signingOut ? "…" : "Sign out"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmSignOut(true)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">
+                  <span>🚪</span> Sign out
+                </button>
+              )}
             </div>
           </div>
         </>

@@ -1,0 +1,13 @@
+{
+  "name": "Àmì by Kòkò",
+  "short_name": "Àmì by Kòkò",
+  "description": "Phonics and early learning for African children",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEFCE8",
+  "theme_color": "#F59E0B",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

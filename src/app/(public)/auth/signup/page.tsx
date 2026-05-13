@@ -30,6 +30,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<"parent" | "school_admin">("parent");
+  const [schoolName, setSchoolName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export default function SignupPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, role } },
     });
 
     if (signUpError) {
@@ -102,7 +104,42 @@ export default function SignupPage() {
             />
           </div>
 
-          {/* Email */}
+          {/* Role selector */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-stone-700">
+              I am signing up as
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: "parent", label: "👩‍👦 Parent", desc: "For home use" },
+                { value: "school_admin", label: "🏫 School", desc: "For a school" },
+              ] as const).map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => setRole(opt.value)}
+                  className={`flex flex-col items-center gap-0.5 py-3 px-2 rounded-2xl border-2 text-sm font-semibold transition ${
+                    role === opt.value
+                      ? "border-amber-400 bg-amber-50 text-amber-700"
+                      : "border-stone-200 text-stone-600 hover:border-amber-200"
+                  }`}>
+                  <span>{opt.label}</span>
+                  <span className="text-xs font-normal text-stone-400">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* School name — only for school_admin */}
+          {role === "school_admin" && (
+            <div>
+              <label htmlFor="schoolName" className="mb-1 block text-sm font-medium text-stone-700">
+                School name
+              </label>
+              <input id="schoolName" type="text" required={role === "school_admin"}
+                value={schoolName} onChange={e => setSchoolName(e.target.value)}
+                className="w-full rounded-xl border border-stone-200 px-4 py-3 text-stone-900 placeholder-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                placeholder="e.g. Sunshine Academy"/>
+            </div>
+          )}
           <div>
             <label htmlFor="email" className="mb-1 block text-sm font-medium text-stone-700">
               Email

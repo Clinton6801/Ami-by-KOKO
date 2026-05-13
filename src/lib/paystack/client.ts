@@ -33,6 +33,7 @@ export function openPaystackPopup(config: PaystackConfig): void {
     email: config.email,
     amount: config.amount,
     ref: config.reference,
+    metadata: { plan: "individual" },
     callback: (response: { reference: string }) => {
       config.onSuccess(response.reference);
     },

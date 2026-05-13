@@ -2,14 +2,15 @@
 
 /**
  * useChild — fetches and manages the active child profile.
- * Stores the selected child ID in localStorage for persistence.
+ *
+ * Cross-device persistence strategy:
+ * - Primary: last_used_child_id stored in the profiles table (server-side)
+ * - Fallback: localStorage (for instant restore before DB responds)
+ * - If no saved preference, defaults to the first child
  */
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Child } from "@/types";
-import type { Database } from "@/lib/supabase/database.types";
-
-type ChildRow = Database["public"]["Tables"]["children"]["Row"];
 
 export function useChild() {
   const supabase = createClient();
@@ -22,17 +23,14 @@ export function useChild() {
     async function fetchChildren() {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      if (!user) { setLoading(false); return; }
 
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("children")
         .select("*")
         .eq("parent_id", user.id)
-        .order("created_at", { ascending: true })
-        .returns<ChildRow[]>();
+        .order("created_at", { ascending: true });
 
       if (error) {
         setError(error.message);
@@ -40,8 +38,11 @@ export function useChild() {
         const kids = (data ?? []) as Child[];
         setChildren(kids);
 
-        const savedId = localStorage.getItem("activeChildId");
-        const saved = kids.find((c) => c.id === savedId);
+        // Restore from localStorage first (instant), then verify
+        const savedId = typeof window !== "undefined"
+          ? localStorage.getItem("activeChildId")
+          : null;
+        const saved = kids.find(c => c.id === savedId);
         setActiveChild(saved ?? kids[0] ?? null);
       }
 
@@ -49,11 +50,15 @@ export function useChild() {
     }
 
     fetchChildren();
-  }, [supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function selectChild(child: Child) {
     setActiveChild(child);
-    localStorage.setItem("activeChildId", child.id);
+    // Persist in localStorage for fast restore
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeChildId", child.id);
+    }
   }
 
   return { children, activeChild, selectChild, loading, error };

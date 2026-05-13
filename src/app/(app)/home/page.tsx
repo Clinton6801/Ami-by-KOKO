@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import CreateChildModal from "@/components/ui/CreateChildModal";
+import OnboardingFlow from "@/components/ui/OnboardingFlow";
 import { useProgress } from "@/hooks/useProgress";
 import type { Child } from "@/types";
 
@@ -44,6 +45,7 @@ export default function HomePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [child, setChild] = useState<Child | null | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { masteredCount, masteredLetters } = useProgress(child?.id ?? null, "english");
   const STORY_LETTERS = ["A","B","C","D","E","F","G","H","I","J"];
@@ -67,6 +69,10 @@ export default function HomePage() {
       setChild(data ?? null);
       // Auto-show modal if no child profile exists
       if (!data) setShowModal(true);
+
+      // Show onboarding once per browser
+      const seen = localStorage.getItem("onboarding_done");
+      if (!seen) setShowOnboarding(true);
     }
     load();
   }, [supabase]);
@@ -230,6 +236,16 @@ export default function HomePage() {
             parentId={userId}
             onCreated={handleChildCreated}
           />
+        )}
+      </AnimatePresence>
+
+      {/* ── Onboarding ────────────────────────────────────── */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingFlow onComplete={() => {
+            localStorage.setItem("onboarding_done", "1");
+            setShowOnboarding(false);
+          }}/>
         )}
       </AnimatePresence>
     </>
