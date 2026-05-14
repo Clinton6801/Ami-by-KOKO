@@ -13,10 +13,12 @@ import type { Child } from "@/types";
 const ALPHABET = Object.keys(LETTER_DATA);
 
 export default function ParentDashboardPage() {
-  const { children, activeChild, selectChild, updateChild, refresh } = useChild();
-  const { progress, masteredCount, loading } = useProgress(activeChild?.id ?? null, "english");
+  const { children, activeChild, selectChild, updateChild, loading: childrenLoading } = useChild();
+  const { progress, masteredCount, loading: progressLoading } = useProgress(activeChild?.id ?? null, "english");
   const { streak } = useStreak(activeChild?.id);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
+
+  const loading = progressLoading;
 
   const totalLetters = ALPHABET.length;
   const pct = Math.round((masteredCount / totalLetters) * 100);
@@ -25,8 +27,17 @@ export default function ParentDashboardPage() {
     <div className="flex flex-col gap-5 pb-10">
       <h1 className="text-2xl font-extrabold text-stone-800">Dashboard</h1>
 
-      {/* Child switcher */}
-      {children.length > 0 && (
+      {/* Loading state */}
+      {childrenLoading && (
+        <div className="flex flex-col gap-3">
+          {[1,2,3].map(i => (
+            <div key={i} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100 animate-pulse h-16" />
+          ))}
+        </div>
+      )}
+
+      {/* Child switcher — only shown when loaded */}
+      {!childrenLoading && children.length > 0 && (
         <div className="flex gap-2 flex-wrap items-center">
           {children.map(child => (
             <button key={child.id} onClick={() => selectChild(child)}
@@ -50,7 +61,7 @@ export default function ParentDashboardPage() {
         </div>
       )}
 
-      {!activeChild ? (
+      {!childrenLoading && !activeChild ? (
         <div className="bg-white rounded-3xl p-6 text-center shadow-sm ring-1 ring-stone-100">
           <p className="text-stone-500 mb-3">No child profile yet.</p>
           <Link href="/home" className="text-amber-600 font-semibold text-sm hover:underline">

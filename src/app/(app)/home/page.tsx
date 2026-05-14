@@ -21,7 +21,7 @@ const STORY_LETTERS = ["A","B","C","D","E","F","G","H","I","J"];
 
 export default function HomePage() {
   const supabase = createClient();
-  const { children, activeChild, selectChild, refresh } = useChild();
+  const { children, activeChild, selectChild, refresh, loading: childrenLoading } = useChild();
   const { masteredCount, masteredLetters } = useProgress(activeChild?.id ?? null, "english");
   const { streak } = useStreak(activeChild?.id);
 
@@ -37,18 +37,13 @@ export default function HomePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-
-      const seen = localStorage.getItem("onboarding_done");
-      if (!seen) setShowOnboarding(true);
+      if (!localStorage.getItem("onboarding_done")) setShowOnboarding(true);
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-show add child modal if no children after loading
-  useEffect(() => {
-    if (children.length === 0 && userId) setShowModal(true);
-  }, [children, userId]);
+  // NO auto-popup. Modal only opens when user explicitly taps "Add" button.
 
   return (
     <>
@@ -61,10 +56,13 @@ export default function HomePage() {
 
           <div className="relative z-10 pt-8 pl-6 pr-4 pb-4 max-w-[55%]">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              {/* Child name + switcher button */}
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-orange-700 font-semibold text-sm">
-                  {activeChild ? `Hi, ${activeChild.name}! 👋` : "Welcome! 👋"}
+                  {childrenLoading
+                    ? "Loading…"
+                    : activeChild
+                    ? `Hi, ${activeChild.name}! 👋`
+                    : "Welcome! 👋"}
                 </p>
                 {children.length > 1 && (
                   <button
@@ -90,7 +88,9 @@ export default function HomePage() {
                       <button key={c.id}
                         onClick={() => { selectChild(c); setShowSwitcher(false); }}
                         className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition ${
-                          activeChild?.id === c.id ? "bg-amber-50 font-bold text-amber-700" : "text-stone-700 hover:bg-amber-50"
+                          activeChild?.id === c.id
+                            ? "bg-amber-50 font-bold text-amber-700"
+                            : "text-stone-700 hover:bg-amber-50"
                         }`}>
                         <span>{c.avatar_url ?? "🧒🏾"}</span>
                         {c.name}
@@ -176,19 +176,31 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Add child prompt ── */}
-        {children.length === 0 && (
-          <div className="px-4 mt-4">
-            <button onClick={() => setShowModal(true)}
-              className="w-full bg-white rounded-3xl p-4 shadow-sm ring-1 ring-amber-200 flex items-center gap-3 hover:bg-amber-50 transition">
-              <span className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-xl">➕</span>
-              <div className="text-left">
+        {/* ── No child profile — inline banner, never a popup ── */}
+        {!childrenLoading && children.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="px-4 mt-4"
+          >
+            <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-amber-200 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-xl flex-shrink-0">
+                👶
+              </span>
+              <div className="flex-1">
                 <p className="font-bold text-stone-800 text-sm">Add a child profile</p>
-                <p className="text-stone-500 text-xs">Track progress and streaks</p>
+                <p className="text-stone-500 text-xs">Track letters, streaks and story progress</p>
               </div>
-            </button>
-          </div>
+              <button
+                onClick={() => userId && setShowModal(true)}
+                className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition"
+              >
+                Add
+              </button>
+            </div>
+          </motion.div>
         )}
+
       </div>
 
       {/* Backdrop for switcher */}
@@ -196,9 +208,14 @@ export default function HomePage() {
         <div className="fixed inset-0 z-10" onClick={() => setShowSwitcher(false)} />
       )}
 
+      {/* Modal — only opens when user taps Add */}
       <AnimatePresence>
         {showModal && userId && (
-          <CreateChildModal parentId={userId} onCreated={() => { setShowModal(false); refresh(); }}/>
+          <CreateChildModal
+            parentId={userId}
+            onCreated={() => { setShowModal(false); refresh(); }}
+            onClose={() => setShowModal(false)}
+          />
         )}
       </AnimatePresence>
 
