@@ -32,6 +32,10 @@ export async function updateSession(request: NextRequest) {
   const isAppRoute =
     request.nextUrl.pathname.startsWith('/home') ||
     request.nextUrl.pathname.startsWith('/phonics') ||
+    request.nextUrl.pathname.startsWith('/literacy') ||
+    request.nextUrl.pathname.startsWith('/numeracy') ||
+    request.nextUrl.pathname.startsWith('/world') ||
+    request.nextUrl.pathname.startsWith('/assignment') ||
     request.nextUrl.pathname.startsWith('/dj-booth') ||
     request.nextUrl.pathname.startsWith('/story') ||
     request.nextUrl.pathname.startsWith('/dashboard') ||
