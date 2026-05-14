@@ -5,22 +5,22 @@ import { notFound } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import TracingCanvas from "@/components/phonics/TracingCanvas";
 import Koko from "@/components/characters/Koko";
+import CountingActivity from "@/components/numeracy/CountingActivity";
 
 // Inline number data (avoid circular import)
-const NUMBER_DATA: Record<string, { numeral: string; word: string; yorubaWord: string; imageUrl: string; colour: string }> = {
-  "1": { numeral:"1", word:"One",   yorubaWord:"Ọkan", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F96D.svg", colour:"from-amber-400 to-orange-400" },
-  "2": { numeral:"2", word:"Two",   yorubaWord:"Èjì",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F34A.svg", colour:"from-green-400 to-emerald-500" },
-  "3": { numeral:"3", word:"Three", yorubaWord:"Ẹta",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F34C.svg", colour:"from-violet-400 to-purple-500" },
-  "4": { numeral:"4", word:"Four",  yorubaWord:"Ẹrin", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F347.svg", colour:"from-rose-400 to-pink-500" },
-  "5": { numeral:"5", word:"Five",  yorubaWord:"Àrún", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F353.svg", colour:"from-sky-400 to-blue-500" },
-  "6": { numeral:"6", word:"Six",   yorubaWord:"Ẹfà",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F360.svg", colour:"from-amber-400 to-yellow-400" },
-  "7": { numeral:"7", word:"Seven", yorubaWord:"Èje",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F966.svg", colour:"from-teal-400 to-cyan-500" },
-  "8": { numeral:"8", word:"Eight", yorubaWord:"Ẹjọ",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F955.svg", colour:"from-orange-400 to-red-400" },
-  "9": { numeral:"9", word:"Nine",  yorubaWord:"Ẹsàn", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F336.svg", colour:"from-fuchsia-400 to-pink-400" },
-  "10":{ numeral:"10",word:"Ten",   yorubaWord:"Ẹwà",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F33D.svg", colour:"from-green-500 to-emerald-400" },
+const NUMBER_DATA: Record<string, { numeral: string; word: string; yorubaWord: string; imageUrl: string; colour: string; itemName: string }> = {
+  "1": { numeral:"1", word:"One",   yorubaWord:"Ọkan", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F96D.svg", colour:"from-amber-400 to-orange-400", itemName:"mango"    },
+  "2": { numeral:"2", word:"Two",   yorubaWord:"Èjì",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F34A.svg", colour:"from-green-400 to-emerald-500", itemName:"orange"   },
+  "3": { numeral:"3", word:"Three", yorubaWord:"Ẹta",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F34C.svg", colour:"from-violet-400 to-purple-500", itemName:"banana"   },
+  "4": { numeral:"4", word:"Four",  yorubaWord:"Ẹrin", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F347.svg", colour:"from-rose-400 to-pink-500",    itemName:"grape"    },
+  "5": { numeral:"5", word:"Five",  yorubaWord:"Àrún", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F353.svg", colour:"from-sky-400 to-blue-500",     itemName:"strawberry"},
+  "6": { numeral:"6", word:"Six",   yorubaWord:"Ẹfà",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F360.svg", colour:"from-amber-400 to-yellow-400", itemName:"yam"      },
+  "7": { numeral:"7", word:"Seven", yorubaWord:"Èje",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F966.svg", colour:"from-teal-400 to-cyan-500",    itemName:"broccoli" },
+  "8": { numeral:"8", word:"Eight", yorubaWord:"Ẹjọ",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F955.svg", colour:"from-orange-400 to-red-400",   itemName:"carrot"   },
+  "9": { numeral:"9", word:"Nine",  yorubaWord:"Ẹsàn", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F336.svg", colour:"from-fuchsia-400 to-pink-400", itemName:"pepper"   },
+  "10":{ numeral:"10",word:"Ten",   yorubaWord:"Ẹwà",  imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F33D.svg", colour:"from-green-500 to-emerald-400", itemName:"corn"    },
 };
 
 const NUMBERS = Object.keys(NUMBER_DATA);
@@ -92,6 +92,15 @@ export default function NumberDetailPage({ params }: Props) {
           {speaking ? "🔊" : "▶"}
         </div>
       </motion.button>
+
+      {/* ── Counting activity ── */}
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-amber-100 p-5">
+        <CountingActivity
+          count={parseInt(number)}
+          imageUrl={data.imageUrl}
+          itemName={data.itemName}
+        />
+      </div>
 
       {/* Did you get it right? */}
       <div className="w-full max-w-sm">
