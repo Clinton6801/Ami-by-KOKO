@@ -61,7 +61,25 @@ export default function SignupPage() {
     }
 
     // Trigger handle_new_user() creates the profile row automatically.
-    // No manual insert needed here.
+    // For school admins, also create the school and link it.
+    if (data.user && role === "school_admin" && schoolName.trim()) {
+      // Create the school record
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: school, error: schoolErr } = await (supabase as any)
+        .from("schools")
+        .insert({ name: schoolName.trim(), subscription_active: false })
+        .select("id")
+        .single();
+
+      if (!schoolErr && school) {
+        // Link the profile to the school
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from("profiles")
+          .update({ school_id: school.id, role: "school_admin" })
+          .eq("id", data.user.id);
+      }
+    }
 
     // If email confirmation is required, data.session will be null.
     if (!data.session) {

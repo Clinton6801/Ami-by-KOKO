@@ -39,7 +39,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dj-booth') ||
     request.nextUrl.pathname.startsWith('/story') ||
     request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/settings')
+    request.nextUrl.pathname.startsWith('/settings') ||
+    request.nextUrl.pathname.startsWith('/school-setup')
 
   if (isAppRoute && !user) {
     const url = request.nextUrl.clone()

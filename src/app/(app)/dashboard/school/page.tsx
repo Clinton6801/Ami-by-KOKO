@@ -516,8 +516,13 @@ export default function SchoolDashboardPage() {
   if (!school) {
     return (
       <div className="bg-white rounded-3xl p-6 text-center shadow-sm ring-1 ring-stone-100">
-        <p className="text-stone-500">No school linked to your account.</p>
-        <p className="text-stone-400 text-xs mt-1">Contact support to set up your school.</p>
+        <div className="text-4xl mb-3">🏫</div>
+        <p className="font-bold text-stone-800 mb-1">No school linked yet</p>
+        <p className="text-stone-500 text-sm mb-4">Set up your school to add students and create assignments.</p>
+        <a href="/school-setup"
+          className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-2xl transition shadow-md">
+          Set up my school →
+        </a>
       </div>
     );
   }
