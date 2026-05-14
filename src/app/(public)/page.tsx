@@ -56,6 +56,10 @@ export default function LandingPage() {
             <span className="font-extrabold text-amber-900 text-base sm:text-lg">Àmì by Kòkò</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/student-login"
+              className="text-sm font-semibold text-stone-600 hover:text-amber-700 px-3 py-2 rounded-xl hover:bg-amber-50 transition hidden sm:block">
+              Student login
+            </Link>
             <Link href="/auth/login"
               className="text-sm font-semibold text-stone-600 hover:text-amber-700 px-3 py-2 rounded-xl hover:bg-amber-50 transition hidden sm:block">
               Sign in

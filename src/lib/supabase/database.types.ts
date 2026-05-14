@@ -46,6 +46,7 @@ export interface Database {
           name: string;
           logo_url: string | null;
           subscription_active: boolean;
+          school_code: string | null;
           created_at: string;
         };
         Insert: {
@@ -53,6 +54,7 @@ export interface Database {
           name: string;
           logo_url?: string | null;
           subscription_active?: boolean;
+          school_code?: string | null;
           created_at?: string;
         };
         Update: {
@@ -60,6 +62,7 @@ export interface Database {
           name?: string;
           logo_url?: string | null;
           subscription_active?: boolean;
+          school_code?: string | null;
           created_at?: string;
         };
       };
@@ -71,6 +74,9 @@ export interface Database {
           name: string;
           age: number | null;
           avatar_url: string | null;
+          class: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
+          term: 1 | 2 | 3 | null;
+          student_pin: string | null;
           created_at: string;
         };
         Insert: {
@@ -80,6 +86,9 @@ export interface Database {
           name: string;
           age?: number | null;
           avatar_url?: string | null;
+          class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
+          term?: 1 | 2 | 3 | null;
+          student_pin?: string | null;
           created_at?: string;
         };
         Update: {
@@ -89,6 +98,9 @@ export interface Database {
           name?: string;
           age?: number | null;
           avatar_url?: string | null;
+          class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
+          term?: 1 | 2 | 3 | null;
+          student_pin?: string | null;
           created_at?: string;
         };
       };
@@ -102,6 +114,9 @@ export interface Database {
           traced_count: number;
           mastered: boolean;
           last_activity: string;
+          subject: "literacy" | "numeracy" | "world";
+          class: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
+          term: 1 | 2 | 3 | null;
         };
         Insert: {
           id?: string;
@@ -112,6 +127,9 @@ export interface Database {
           traced_count?: number;
           mastered?: boolean;
           last_activity?: string;
+          subject?: "literacy" | "numeracy" | "world";
+          class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
+          term?: 1 | 2 | 3 | null;
         };
         Update: {
           id?: string;
@@ -122,6 +140,76 @@ export interface Database {
           traced_count?: number;
           mastered?: boolean;
           last_activity?: string;
+          subject?: "literacy" | "numeracy" | "world";
+          class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
+          term?: 1 | 2 | 3 | null;
+        };
+      };
+      assignments: {
+        Row: {
+          id: string;
+          school_id: string;
+          class: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone";
+          subject: "literacy" | "numeracy" | "world";
+          term: 1 | 2 | 3;
+          title: string;
+          description: string | null;
+          activity_type: "tracing" | "listening" | "matching" | "counting";
+          content_keys: string[];
+          due_date: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          school_id: string;
+          class: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone";
+          subject: "literacy" | "numeracy" | "world";
+          term: 1 | 2 | 3;
+          title: string;
+          description?: string | null;
+          activity_type: "tracing" | "listening" | "matching" | "counting";
+          content_keys: string[];
+          due_date?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          school_id?: string;
+          class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone";
+          subject?: "literacy" | "numeracy" | "world";
+          term?: 1 | 2 | 3;
+          title?: string;
+          description?: string | null;
+          activity_type?: "tracing" | "listening" | "matching" | "counting";
+          content_keys?: string[];
+          due_date?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+      };
+      assignment_progress: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          child_id: string;
+          completed: boolean;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          child_id: string;
+          completed?: boolean;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          assignment_id?: string;
+          child_id?: string;
+          completed?: boolean;
+          completed_at?: string | null;
         };
       };
       sessions: {

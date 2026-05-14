@@ -106,3 +106,106 @@ export interface StoryProgress {
   totalShards: number // 10 for MVP
   completed: boolean
 }
+
+// ─── Curriculum Types (Section 9 of build instructions) ──────────────────────
+
+export type ClassLevel = 'sprout_1' | 'sprout_2' | 'sprout_3' | 'stepping_stone'
+
+export type Term = 1 | 2 | 3
+
+export type Subject = 'literacy' | 'numeracy' | 'world'
+
+export type ActivityType = 'tracing' | 'listening' | 'matching' | 'counting'
+
+/** Human-readable labels for class levels */
+export const CLASS_LABELS: Record<ClassLevel, string> = {
+  sprout_1:      'Sprout 1',
+  sprout_2:      'Sprout 2',
+  sprout_3:      'Sprout 3',
+  stepping_stone: 'Stepping Stone',
+}
+
+/** Age ranges per class */
+export const CLASS_AGES: Record<ClassLevel, string> = {
+  sprout_1:      '1–3 years',
+  sprout_2:      '3–4 years',
+  sprout_3:      '4–5 years',
+  stepping_stone: '5–6 years',
+}
+
+/** Which classes are active (content available) vs coming soon */
+export const ACTIVE_CLASSES: ClassLevel[] = ['sprout_1']
+
+/** Subject display names per the UI rules */
+export const SUBJECT_LABELS: Record<Subject, string> = {
+  literacy: 'Literacy & Language',
+  numeracy: 'Numbers & Shapes',
+  world:    'My World',
+}
+
+export const SUBJECT_EMOJIS: Record<Subject, string> = {
+  literacy: '🔤',
+  numeracy: '🔢',
+  world:    '🌍',
+}
+
+/** Extended Child type with new curriculum fields */
+export interface ChildWithClass extends Child {
+  class?: ClassLevel
+  term?: Term
+  student_pin?: string
+}
+
+export interface Assignment {
+  id: string
+  school_id: string
+  class: ClassLevel
+  subject: Subject
+  term: Term
+  title: string
+  description?: string
+  activity_type: ActivityType
+  content_keys: string[]   // e.g. ['s', 'a', 't'] or ['1', '2', '3']
+  due_date?: string
+  created_by: string
+  created_at: string
+}
+
+export interface AssignmentProgress {
+  id: string
+  assignment_id: string
+  child_id: string
+  completed: boolean
+  completed_at?: string
+}
+
+export interface StudentLoginSession {
+  school_code: string
+  child_id: string
+  school_id: string
+  class: ClassLevel
+  term: Term
+}
+
+/** Sprout 1 Term 1 literacy sound set (Jolly Phonics order, no branding) */
+export const SPROUT1_TERM1_SOUNDS = ['s', 'a', 't', 'i', 'p', 'n'] as const
+
+/** Sprout 1 Term 2 sound sets */
+export const SPROUT1_TERM2_SOUNDS = ['c', 'k', 'e', 'h', 'r', 'm', 'd', 'g', 'o', 'u', 'l', 'f', 'b'] as const
+
+/** Sprout 1 Term 3 sound sets */
+export const SPROUT1_TERM3_SOUNDS = ['ai', 'j', 'oa', 'ie', 'ee', 'or', 'z', 'w', 'ng', 'v'] as const
+
+/** Sprout 1 numeracy content per term */
+export const SPROUT1_NUMERACY: Record<Term, string[]> = {
+  1: ['1', '2', '3'],
+  2: ['4', '5', '6', '7'],
+  3: ['8', '9', '10'],
+}
+
+/** Sprout 1 World Knowledge content per term */
+export const SPROUT1_WORLD: Record<Term, string[]> = {
+  1: ['head', 'eyes', 'nose', 'mouth', 'hands', 'feet'],
+  2: ['dog', 'cat', 'cow', 'goat', 'chicken', 'parrot', 'mango', 'orange', 'banana'],
+  3: ['cup', 'book', 'bag', 'shoe', 'ball', 'spoon', 'sun', 'rain', 'cloud'],
+}
