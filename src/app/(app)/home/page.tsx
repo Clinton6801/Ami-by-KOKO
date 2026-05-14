@@ -23,6 +23,74 @@ const MODES = [
 
 const STORY_LETTERS = ["A","B","C","D","E","F","G","H","I","J"];
 
+// ─── School Admin Home ────────────────────────────────────────────────────────
+
+function SchoolAdminHome({ schoolName }: { schoolName: string }) {
+  const SHORTCUTS = [
+    { href: "/dashboard/school",    emoji: "👥", title: "Students",    description: "Add, edit and manage students",   gradient: "from-green-500 to-emerald-400", shadow: "shadow-green-200", ring: "ring-green-200" },
+    { href: "/dashboard/school",    emoji: "📝", title: "Assignments", description: "Create and assign activities",    gradient: "from-amber-400 to-orange-400",  shadow: "shadow-amber-200", ring: "ring-amber-200"  },
+    { href: "/dashboard/school",    emoji: "📊", title: "Reports",     description: "View class progress",             gradient: "from-violet-500 to-purple-400", shadow: "shadow-violet-200",ring: "ring-violet-200" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-emerald-50 pb-24">
+
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl mx-2 mt-2 bg-gradient-to-br from-green-600 via-emerald-500 to-teal-500 shadow-xl shadow-green-200 min-h-[200px]">
+        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-10" />
+        <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white opacity-10" />
+
+        <div className="relative z-10 pt-8 pl-6 pr-4 pb-6">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="inline-flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1 mb-3">
+              <span className="text-xs font-bold text-white">🏫 School Admin</span>
+            </div>
+            <h1 className="text-2xl font-extrabold text-white leading-tight drop-shadow-sm">
+              {schoolName}
+            </h1>
+            <p className="text-green-100 text-sm mt-1">
+              Manage your students and assignments
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Quick action cards */}
+      <div className="px-4 mt-6">
+        <h2 className="text-base font-bold text-stone-700 mb-3">Quick Actions</h2>
+        <div className="flex flex-col gap-3">
+          {SHORTCUTS.map((s, i) => (
+            <motion.div key={s.title} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 + i * 0.08 }}>
+              <Link href={s.href}
+                className={`flex items-center gap-4 p-4 rounded-3xl bg-white shadow-md ${s.shadow} ring-1 ${s.ring} transition hover:scale-[1.02] active:scale-[0.98]`}>
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-2xl shadow-sm flex-shrink-0`}>
+                  {s.emoji}
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-stone-800 text-sm">{s.title}</p>
+                  <p className="text-stone-500 text-xs">{s.description}</p>
+                </div>
+                <div className="text-stone-300">›</div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Go to full dashboard */}
+      <div className="px-4 mt-4">
+        <Link href="/dashboard/school"
+          className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl transition shadow-md shadow-green-200">
+          Open School Dashboard →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Parent / Student Home ────────────────────────────────────────────────────
+
 export default function HomePage() {
   const supabase = createClient();
   const { children, activeChild, selectChild, refresh, loading: childrenLoading } = useChild();
@@ -32,6 +100,8 @@ export default function HomePage() {
   const { assignments, isCompleted } = useAssignments(activeChildWithClass);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<"parent" | "school_admin" | null>(null);
+  const [schoolName, setSchoolName] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
@@ -44,11 +114,47 @@ export default function HomePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profile } = await (supabase as any)
+        .from("profiles")
+        .select("role, school_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setUserRole(profile.role);
+
+        if (profile.role === "school_admin" && profile.school_id) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: school } = await (supabase as any)
+            .from("schools")
+            .select("name")
+            .eq("id", profile.school_id)
+            .single();
+          if (school) setSchoolName(school.name);
+        }
+      }
+
       if (!localStorage.getItem("onboarding_done")) setShowOnboarding(true);
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Show school admin view
+  if (userRole === "school_admin") {
+    return <SchoolAdminHome schoolName={schoolName || "Your School"} />;
+  }
+
+  // Loading state
+  if (userRole === null) {
+    return (
+      <div className="flex flex-col gap-3 pb-10">
+        {[1,2,3].map(i => <div key={i} className="bg-white rounded-3xl h-20 animate-pulse ring-1 ring-stone-100"/>)}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -134,7 +240,7 @@ export default function HomePage() {
           </motion.div>
         </div>
 
-        {/* ── Assignments section (school children only) ── */}
+        {/* ── Assignments (school children only) ── */}
         {isSchoolChild && assignments.length > 0 && (
           <div className="px-4 mt-6">
             <h2 className="text-base font-bold text-stone-700 mb-3">📝 This Week&apos;s Assignments</h2>
@@ -143,14 +249,10 @@ export default function HomePage() {
                 const done = isCompleted(a.id);
                 return (
                   <motion.div key={a.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className={`flex items-center gap-3 p-3.5 rounded-2xl bg-white shadow-sm ring-1 ${
-                      done ? "ring-green-200" : "ring-amber-100"
-                    }`}>
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl bg-white shadow-sm ring-1 ${done ? "ring-green-200" : "ring-amber-100"}`}>
                     <span className="text-2xl">{SUBJECT_EMOJIS[a.subject]}</span>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-sm truncate ${done ? "text-stone-400 line-through" : "text-stone-800"}`}>
-                        {a.title}
-                      </p>
+                      <p className={`font-bold text-sm truncate ${done ? "text-stone-400 line-through" : "text-stone-800"}`}>{a.title}</p>
                       <p className="text-xs text-stone-400">
                         {a.content_keys.join(", ")}
                         {a.due_date ? ` · Due ${new Date(a.due_date).toLocaleDateString()}` : ""}
@@ -194,7 +296,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Quick stats (hide subscription prompt for school children) ── */}
+        {/* ── Quick stats ── */}
         <div className="px-4 mt-6">
           <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100 flex items-center justify-around">
             <div className="flex flex-col items-center gap-1">
@@ -203,9 +305,7 @@ export default function HomePage() {
             </div>
             <div className="w-px h-10 bg-stone-100" />
             <div className="flex flex-col items-center gap-1">
-              <span className="text-2xl font-extrabold text-green-500">
-                {streak > 0 ? `${streak}🔥` : "0"}
-              </span>
+              <span className="text-2xl font-extrabold text-green-500">{streak > 0 ? `${streak}🔥` : "0"}</span>
               <span className="text-xs text-stone-500">Streak</span>
             </div>
             <div className="w-px h-10 bg-stone-100" />
