@@ -88,6 +88,11 @@ create table if not exists public.assignment_progress (
 alter table public.assignment_progress enable row level security;
 
 -- RLS: assignments
+drop policy if exists "School admins can manage assignments" on public.assignments;
+drop policy if exists "Children can view their class assignments" on public.assignments;
+drop policy if exists "School admins can view assignment progress" on public.assignment_progress;
+drop policy if exists "Children can update their own assignment progress" on public.assignment_progress;
+
 create policy "School admins can manage assignments"
   on public.assignments for all
   using (
