@@ -14,7 +14,6 @@
 import { use, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useChild } from "@/hooks/useChild";
 import TracingCanvas from "@/components/phonics/TracingCanvas";
@@ -128,9 +127,10 @@ function ItemActivity({ itemKey, subject, index, total, onComplete }: ItemActivi
       {/* Item display card */}
       <div className="w-full max-w-sm bg-gradient-to-br from-amber-400 to-orange-400 rounded-3xl p-6 flex flex-col items-center gap-3 shadow-xl shadow-amber-200">
         {data.imageUrl && (
-          <div className="relative w-20 h-20 bg-white/25 rounded-2xl p-2">
-            <Image src={data.imageUrl} alt={data.display} fill
-              className="object-contain p-1" sizes="80px" unoptimized/>
+          <div className="w-20 h-20 bg-white/25 rounded-2xl p-2 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={data.imageUrl} alt={data.display}
+              className="w-full h-full object-contain p-1" />
           </div>
         )}
         <span className="text-6xl font-extrabold text-white drop-shadow-lg">

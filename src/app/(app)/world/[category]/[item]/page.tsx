@@ -4,7 +4,6 @@ import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import Koko from "@/components/characters/Koko";
 import { WORLD_ITEMS, WORLD_CATEGORIES, getItemsByCategory } from "@/lib/content/world";
 
@@ -43,9 +42,10 @@ export default function WorldItemPage({ params }: Props) {
       <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 18 }}
         className={`w-full max-w-sm rounded-3xl bg-gradient-to-br ${cat.colour} shadow-xl p-6 flex flex-col items-center gap-4`}>
-        <div className="relative w-28 h-28 bg-white/25 rounded-3xl p-3">
-          <Image src={item.imageUrl} alt={item.englishName} fill
-            className="object-contain p-1" sizes="112px" unoptimized/>
+        <div className="w-28 h-28 bg-white/25 rounded-3xl p-3 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.imageUrl} alt={item.englishName}
+            className="w-full h-full object-contain" />
         </div>
         <div className="text-center">
           <p className="text-white font-extrabold text-3xl">{item.englishName}</p>

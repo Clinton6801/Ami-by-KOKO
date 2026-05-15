@@ -4,7 +4,6 @@ import { use } from "react";
 import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 
 // Number data — Sprout 1 content
 const NUMBER_DATA: Record<string, {
@@ -51,9 +50,10 @@ export default function NumeracyGridPage({ params }: Props) {
               className={`flex flex-col items-center rounded-2xl bg-gradient-to-br ${data.colour} shadow-md text-white overflow-hidden transition hover:scale-105`}
               aria-label={`Number ${data.numeral}, ${data.word}`}>
               <div className="w-full bg-white/20 flex items-center justify-center p-1.5 pt-2">
-                <div className="relative w-10 h-10 sm:w-12 sm:h-12">
-                  <Image src={data.imageUrl} alt={data.word} fill
-                    className="object-contain" sizes="48px" unoptimized/>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={data.imageUrl} alt={data.word}
+                    className="w-full h-full object-contain" />
                 </div>
               </div>
               <div className="w-full flex flex-col items-center pb-2 pt-1 px-1">

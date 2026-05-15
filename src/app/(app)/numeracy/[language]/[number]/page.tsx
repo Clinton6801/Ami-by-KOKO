@@ -69,8 +69,10 @@ export default function NumberDetailPage({ params }: Props) {
         <div className="flex items-end gap-4 leading-none">
           <span className="text-8xl font-extrabold text-white drop-shadow-lg">{data.numeral}</span>
         </div>
-        <div className="relative w-20 h-20 bg-white/20 rounded-2xl p-2">
-          <Image src={data.imageUrl} alt={data.word} fill className="object-contain p-1" sizes="80px" unoptimized/>
+        <div className="relative w-20 h-20 bg-white/20 rounded-2xl p-2 flex items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={data.imageUrl} alt={data.word}
+            className="w-full h-full object-contain p-1" />
         </div>
         <p className="text-white font-bold text-xl">{data.word}</p>
         <div className="flex gap-2 flex-wrap justify-center">

@@ -12,7 +12,6 @@
  */
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 
 interface CountingActivityProps {
   count: number;
@@ -113,15 +112,13 @@ export default function CountingActivity({
             >
               {/* Fruit image */}
               <div className="relative w-full h-full">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={imageUrl}
                   alt={itemName}
-                  fill
-                  className={`object-contain transition-all duration-300 ${
+                  className={`w-full h-full object-contain transition-all duration-300 ${
                     lit ? "opacity-100" : "opacity-20 grayscale"
                   }`}
-                  sizes="52px"
-                  unoptimized
                 />
               </div>
 

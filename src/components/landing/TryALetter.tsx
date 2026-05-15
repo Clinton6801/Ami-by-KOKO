@@ -145,16 +145,13 @@ export default function TryALetter() {
 
             {/* Object image */}
             <AnimatePresence mode="wait">
-              <motion.div
-                key={selected.letter + "-img"}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
+              <motion.div key={selected.letter + "-img"} initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="relative w-20 h-20 bg-white/25 rounded-2xl p-2"
-              >
-                <Image src={selected.image} alt={selected.english} fill
-                  className="object-contain p-1" unoptimized sizes="80px"/>
+                className="w-20 h-20 bg-white/25 rounded-2xl p-2 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={selected.image} alt={selected.english}
+                  className="w-full h-full object-contain" />
               </motion.div>
             </AnimatePresence>
 

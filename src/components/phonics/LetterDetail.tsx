@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import TracingCanvas from "./TracingCanvas";
 import Koko from "@/components/characters/Koko";
 import { playLetterSound } from "@/lib/audio/speech";
@@ -91,9 +90,10 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
         </div>
 
         {letterData.imageUrl && (
-          <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-white/20 rounded-2xl p-2">
-            <Image src={letterData.imageUrl} alt={word} fill
-              className="object-contain p-1" sizes="96px" unoptimized />
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/20 rounded-2xl p-2 flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={letterData.imageUrl} alt={word}
+              className="w-full h-full object-contain p-1" />
           </div>
         )}
 

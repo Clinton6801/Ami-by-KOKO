@@ -4,7 +4,6 @@ import { use } from "react";
 import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { WORLD_CATEGORIES, getItemsByCategory } from "@/lib/content/world";
 
 interface Props { params: Promise<{ category: string }> }
@@ -33,9 +32,10 @@ export default function WorldCategoryPage({ params }: Props) {
             <Link href={`/world/${category}/${item.key}`}
               className={`flex flex-col items-center rounded-2xl bg-gradient-to-br ${cat.colour} shadow-md text-white overflow-hidden transition hover:scale-105`}>
               <div className="w-full bg-white/20 flex items-center justify-center p-2 pt-3">
-                <div className="relative w-12 h-12 sm:w-14 sm:h-14">
-                  <Image src={item.imageUrl} alt={item.englishName} fill
-                    className="object-contain" sizes="56px" unoptimized/>
+                <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.imageUrl} alt={item.englishName}
+                    className="w-full h-full object-contain" />
                 </div>
               </div>
               <div className="w-full flex flex-col items-center pb-2 pt-1 px-1">

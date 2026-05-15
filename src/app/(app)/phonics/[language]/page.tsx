@@ -3,7 +3,6 @@
 import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { use } from "react";
 import { MVP_LANGUAGES, type Language } from "@/types";
 import { LETTER_DATA } from "@/lib/audio/clips";
@@ -72,9 +71,10 @@ export default function PhonicsGridPage({ params }: Props) {
                 {/* Image */}
                 <div className="w-full bg-white/20 flex items-center justify-center p-1.5 pt-2">
                   {data.imageUrl ? (
-                    <div className="relative w-10 h-10 sm:w-12 sm:h-12">
-                      <Image src={data.imageUrl} alt={word} fill
-                        className="object-contain" sizes="48px" unoptimized />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={data.imageUrl} alt={word}
+                        className="w-full h-full object-contain" />
                     </div>
                   ) : (
                     <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-2xl">📖</div>
