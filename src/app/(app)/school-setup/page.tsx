@@ -3,13 +3,14 @@
 /**
  * School setup page — for school admins who signed up but have no school linked.
  * Shown automatically when a school_admin visits /dashboard/school with no school_id.
+ *
+ * School creation goes through /api/school/create (service role) to avoid RLS
+ * chicken-and-egg: the user has no school_id yet, so client-side insert would fail.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 export default function SchoolSetupPage() {
-  const supabase = createClient();
   const router = useRouter();
   const [schoolName, setSchoolName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,25 +22,19 @@ export default function SchoolSetupPage() {
     setLoading(true);
     setError(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setError("Not logged in."); setLoading(false); return; }
+    const res = await fetch("/api/school/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: schoolName.trim() }),
+    });
 
-    // Create school
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: school, error: schoolErr } = await (supabase as any)
-      .from("schools")
-      .insert({ name: schoolName.trim(), subscription_active: false })
-      .select("id, school_code")
-      .single();
+    const json = await res.json();
 
-    if (schoolErr) { setError(schoolErr.message); setLoading(false); return; }
-
-    // Link profile to school
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
-      .from("profiles")
-      .update({ school_id: school.id, role: "school_admin" })
-      .eq("id", user.id);
+    if (!res.ok) {
+      setError(json.error ?? "Something went wrong. Please try again.");
+      setLoading(false);
+      return;
+    }
 
     router.push("/dashboard/school");
     router.refresh();
