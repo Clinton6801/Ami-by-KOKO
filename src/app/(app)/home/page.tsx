@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -235,8 +234,9 @@ export default function HomePage() {
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="absolute right-0 bottom-0 w-44 h-56 sm:w-52 sm:h-64">
-            <Image src="/ami-koko.svg" alt="Àmì holding Kòkò the parrot" fill
-              className="object-contain object-bottom" priority unoptimized sizes="208px"/>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ami-koko.svg" alt="Àmì holding Kòkò the parrot"
+              className="w-full h-full object-contain object-bottom" />
           </motion.div>
         </div>
 

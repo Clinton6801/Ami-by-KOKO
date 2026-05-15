@@ -31,6 +31,25 @@ export default function PhonicsGridPage({ params }: Props) {
   const { activeChild } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, lang);
 
+  // Show skeleton while children/progress loads
+  const { loading: childLoading } = useChild();
+
+  if (childLoading) {
+    return (
+      <div className="pb-10">
+        <div className="mb-5 text-center">
+          <div className="h-7 w-40 bg-stone-200 rounded-full mx-auto animate-pulse mb-2" />
+          <div className="h-4 w-56 bg-stone-100 rounded-full mx-auto animate-pulse" />
+        </div>
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 sm:gap-3">
+          {Array(26).fill(null).map((_, i) => (
+            <div key={i} className="aspect-square rounded-2xl bg-stone-200 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-10">
       <div className="mb-5 text-center">

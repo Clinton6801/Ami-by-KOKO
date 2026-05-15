@@ -216,9 +216,10 @@ function CelebrationScreen({ title, onHome }: { title: string; onHome: () => voi
         </p>
       </div>
 
-      <div className="relative w-40 h-40">
-        <Image src="/ami-koko.svg" alt="Àmì and Kòkò celebrating" fill
-          className="object-contain" unoptimized/>
+      <div className="w-40 h-40 flex items-center justify-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/ami-koko.svg" alt="Àmì and Kòkò celebrating"
+          className="w-full h-full object-contain" />
       </div>
 
       <div className="flex flex-col gap-3 w-full max-w-xs">

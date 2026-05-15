@@ -15,7 +15,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { ChildWithClass, StudentLoginSession } from "@/types";
 
@@ -295,13 +294,11 @@ export default function StudentLoginPage() {
       {/* Header illustration */}
       <div className="flex flex-col items-center gap-2 mb-8">
         <div className="relative w-32 h-32">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src="/ami-koko.svg"
             alt="Àmì and Kòkò"
-            fill
-            className="object-contain"
-            unoptimized
-            priority
+            className="w-full h-full object-contain"
           />
         </div>
         <h1 className="text-2xl font-extrabold text-amber-900">Àmì by Kòkò</h1>

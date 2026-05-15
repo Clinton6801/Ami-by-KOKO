@@ -2,8 +2,10 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useState } from "react";
 import { useChild } from "@/hooks/useChild";
 import { useProgress } from "@/hooks/useProgress";
+import Certificate from "@/components/ui/Certificate";
 
 const STORY_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 const TOTAL = STORY_LETTERS.length;
@@ -30,6 +32,7 @@ export default function StoryPage() {
   const completed = shardsCollected >= TOTAL;
   const pct = Math.round((shardsCollected / TOTAL) * 100);
   const scene = getCurrentScene(shardsCollected);
+  const [showCert, setShowCert] = useState(false);
 
   return (
     <div className="flex flex-col items-center gap-5 pb-10 max-w-sm mx-auto w-full">

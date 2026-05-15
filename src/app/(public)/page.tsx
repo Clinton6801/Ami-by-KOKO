@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import TryALetter from "@/components/landing/TryALetter";
 
 const FEATURES = [
@@ -153,14 +152,11 @@ export default function LandingPage() {
                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                 className="relative z-10 w-full h-full"
               >
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src="/ami-koko.svg"
                   alt="Àmì, an African girl, holding Kòkò her talking parrot"
-                  fill
-                  className="object-contain drop-shadow-2xl"
-                  priority
-                  unoptimized
-                  sizes="(max-width: 640px) 256px, (max-width: 1024px) 320px, 440px"
+                  className="w-full h-full object-contain drop-shadow-2xl"
                 />
               </motion.div>
               {/* Speech bubble */}

@@ -89,9 +89,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <div className="text-4xl">{current.emoji}</div>
 
             {current.image && (
-              <div className="relative w-40 h-40">
-                <Image src={current.image} alt="Àmì and Kòkò" fill
-                  className="object-contain" unoptimized/>
+              <div className="w-40 h-40 flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={current.image} alt="Àmì and Kòkò"
+                  className="w-full h-full object-contain" />
               </div>
             )}
 
