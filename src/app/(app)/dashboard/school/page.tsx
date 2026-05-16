@@ -95,8 +95,16 @@ function StudentsTab({
   const [csvResult, setCsvResult] = useState<string | null>(null);
 
   async function handleDelete(id: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any).from("children").delete().eq("id", id);
+    const res = await fetch("/api/school/students", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ schoolId, studentId: id }),
+    });
+    if (!res.ok) {
+      const json = await res.json();
+      alert(json.error ?? "Failed to delete student.");
+      return;
+    }
     setDeleting(null);
     onRefresh();
   }

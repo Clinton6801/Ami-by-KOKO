@@ -5,7 +5,6 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
 import {
   CLASS_LABELS, ACTIVE_CLASSES,
   type ClassLevel, type Term, type ChildWithClass,
@@ -23,7 +22,6 @@ interface StudentModalProps {
 const ALL_CLASSES: ClassLevel[] = ["sprout_1","sprout_2","sprout_3","stepping_stone"];
 
 export default function StudentModal({ schoolId, student, onSaved, onClose }: StudentModalProps) {
-  const supabase = createClient();
   const isEdit = !!student;
 
   const [name, setName]     = useState(student?.name ?? "");
@@ -45,27 +43,20 @@ export default function StudentModal({ schoolId, student, onSaved, onClose }: St
     setLoading(true);
     setError(null);
 
-    const payload = {
-      name: name.trim(),
-      age: age ? parseInt(age) : null,
-      class: cls,
-      term,
-      student_pin: pin || null,
-      avatar_url: avatar,
-      school_id: schoolId,
-    };
+    const res = await fetch("/api/school/students", {
+      method: isEdit ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schoolId,
+        studentId: isEdit ? student!.id : undefined,
+        name, age, cls, term,
+        pin: pin || null,
+        avatar,
+      }),
+    });
 
-    if (isEdit) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("children").update(payload).eq("id", student!.id);
-      if (error) { setError(error.message); setLoading(false); return; }
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("children").insert({ ...payload });
-      if (error) { setError(error.message); setLoading(false); return; }
-    }
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? "Something went wrong."); setLoading(false); return; }
 
     onSaved();
   }
