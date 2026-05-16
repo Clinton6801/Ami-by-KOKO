@@ -50,9 +50,13 @@ export function generateReference(prefix = "ami"): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/** Subscription pricing in kobo */
+/** Subscription pricing in kobo (₦1 = 100 kobo) */
 export const PRICING = {
-  individual_monthly: 150000,  // ₦1,500/month
-  individual_annual: 1500000,  // ₦15,000/year
-  school_annual: 5000000,      // ₦50,000/year per school
+  explorer_monthly:  150000,   // ₦1,500/month
+  explorer_annual:   1200000,  // ₦12,000/year
+  family_monthly:    250000,   // ₦2,500/month
+  family_annual:     2000000,  // ₦20,000/year
+  school_annual:     5000000,  // ₦50,000/year per school
+  // Legacy alias — used in existing Yorùbá unlock flow
+  individual_monthly: 150000,
 } as const;

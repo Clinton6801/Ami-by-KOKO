@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { friendlyError } from "@/lib/api/errors";
 
 async function getClients() {
   const cookieStore = await cookies();
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError(error, "Failed to add student.") }, { status: 500 });
   return NextResponse.json({ student: data });
 }
 
@@ -118,11 +119,11 @@ export async function PATCH(request: NextRequest) {
       avatar_url: avatar,
     })
     .eq("id", studentId)
-    .eq("school_id", schoolId)   // safety: only update students in this school
+    .eq("school_id", schoolId)
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError(error, "Failed to update student.") }, { status: 500 });
   return NextResponse.json({ student: data });
 }
 
@@ -147,6 +148,6 @@ export async function DELETE(request: NextRequest) {
     .eq("id", studentId)
     .eq("school_id", schoolId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: friendlyError(error, "Failed to remove student.") }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

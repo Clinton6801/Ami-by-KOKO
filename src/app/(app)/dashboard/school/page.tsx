@@ -87,7 +87,6 @@ function StudentsTab({
   students: ChildWithClass[];
   onRefresh: () => void;
 }) {
-  const supabase = createClient();
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ChildWithClass | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -123,18 +122,22 @@ function StudentsTab({
       const [name, age, cls, term, pin] = line.split(",").map(s => s.trim().replace(/"/g, ""));
       if (!name) { fail++; continue; }
       const validClasses = ["sprout_1","sprout_2","sprout_3","stepping_stone"];
-      const payload = {
-        name,
-        age: age ? parseInt(age) : null,
-        class: validClasses.includes(cls) ? cls : "sprout_1",
-        term: [1,2,3].includes(parseInt(term)) ? parseInt(term) : 1,
-        student_pin: pin?.length === 4 ? pin : null,
-        school_id: schoolId,
-        avatar_url: "🧒🏾",
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any).from("children").insert(payload);
-      if (error) fail++; else ok++;
+
+      const res = await fetch("/api/school/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId,
+          name,
+          age: age || null,
+          cls: validClasses.includes(cls) ? cls : "sprout_1",
+          term: [1,2,3].includes(parseInt(term)) ? parseInt(term) : 1,
+          pin: pin?.length === 4 ? pin : null,
+          avatar: "🧒🏾",
+        }),
+      });
+
+      if (res.ok) ok++; else fail++;
     }
 
     setCsvResult(`✅ ${ok} imported${fail > 0 ? `, ❌ ${fail} failed` : ""}`);

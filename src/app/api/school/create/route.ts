@@ -62,10 +62,11 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (schoolErr || !school) {
-    return NextResponse.json(
-      { error: schoolErr?.message ?? "Failed to create school." },
-      { status: 500 }
-    );
+    // Sanitise error — never expose raw Postgres messages to the client
+    const msg = schoolErr?.code === "23505"
+      ? "A school with this name already exists."
+      : "Failed to create school. Please try again.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   // 4. Link the profile to the new school
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
 
   if (profileErr) {
     return NextResponse.json(
-      { error: profileErr.message },
+      { error: "School created but failed to link your profile. Please contact support." },
       { status: 500 }
     );
   }
