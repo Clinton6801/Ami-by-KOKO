@@ -8,6 +8,7 @@ import Link from "next/link";
 import TracingCanvas from "@/components/phonics/TracingCanvas";
 import Koko from "@/components/characters/Koko";
 import CountingActivity from "@/components/numeracy/CountingActivity";
+import { useChild } from "@/hooks/useChild";
 
 // Inline number data (avoid circular import)
 const NUMBER_DATA: Record<string, { numeral: string; word: string; yorubaWord: string; imageUrl: string; colour: string; itemName: string }> = {
@@ -38,6 +39,7 @@ export default function NumberDetailPage({ params }: Props) {
   const [speaking, setSpeaking] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
+  const { activeChild } = useChild();
 
   const idx = NUMBERS.indexOf(number);
   const nextNum = idx < NUMBERS.length - 1 ? NUMBERS[idx + 1] : null;
@@ -56,6 +58,19 @@ export default function NumberDetailPage({ params }: Props) {
 
   function handleCorrect() {
     setCheckState("correct");
+    if (activeChild?.id) {
+      fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          childId: activeChild.id,
+          language: "english",
+          letter: number,
+          subject: "numeracy",
+          patch: { mastered: true, heard_count: 1 },
+        }),
+      });
+    }
     if (nextNum) setTimeout(() => router.push(`/numeracy/${language}/${nextNum}`), 1200);
   }
 

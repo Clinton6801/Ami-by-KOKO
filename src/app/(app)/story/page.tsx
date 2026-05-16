@@ -133,9 +133,43 @@ export default function StoryPage() {
           </p>
           <Link href="/phonics/english"
             className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 rounded-2xl transition shadow-md shadow-amber-200">
-            Go to Phonics →
+            Go to Phonics
           </Link>
         </div>
+      )}
+
+      {/* ── Completed — certificate ── */}
+      {completed && (
+        <div className="w-full bg-gradient-to-br from-amber-400 to-orange-400 rounded-3xl shadow-xl p-6 text-center flex flex-col items-center gap-4">
+          <motion.div
+            animate={{ rotate: [-5, 5, -5], scale: [1, 1.1, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className="text-6xl"
+          >
+            🏆
+          </motion.div>
+          <div>
+            <p className="font-extrabold text-white text-xl">Story Complete!</p>
+            <p className="text-orange-100 text-sm mt-1">
+              {activeChild?.name ?? "You"} restored Kòkò&apos;s voice!
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCert(true)}
+            className="bg-white text-amber-600 font-extrabold px-8 py-3 rounded-2xl transition hover:bg-amber-50 shadow-md active:scale-95"
+          >
+            🎓 Get Certificate
+          </button>
+        </div>
+      )}
+
+      {showCert && (
+        <Certificate
+          childName={activeChild?.name ?? "Champion"}
+          achievement="restored Kòkò's voice by mastering 10 letters"
+          subject="Story Mode — English Phonics"
+          onClose={() => setShowCert(false)}
+        />
       )}
 
     </div>

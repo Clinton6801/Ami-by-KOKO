@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useChild } from "@/hooks/useChild";
@@ -20,11 +20,12 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
 
   // Load user info once
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) { setUserId(user.id); setUserEmail(user.email ?? null); }
     });
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSignOut() {
     setSigningOut(true);

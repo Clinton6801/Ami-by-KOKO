@@ -5,7 +5,6 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { createClient } from "@/lib/supabase/client";
 import {
   CLASS_LABELS, SUBJECT_LABELS, SUBJECT_EMOJIS,
   SPROUT1_TERM1_SOUNDS, SPROUT1_TERM2_SOUNDS, SPROUT1_TERM3_SOUNDS,
@@ -33,7 +32,6 @@ function getContentOptions(cls: ClassLevel, term: Term, subject: Subject): strin
 }
 
 export default function AssignmentModal({ schoolId, adminId, assignment, onSaved, onClose }: AssignmentModalProps) {
-  const supabase = createClient();
   const isEdit = !!assignment;
 
   const [title, setTitle]       = useState(assignment?.title ?? "");
@@ -63,53 +61,24 @@ export default function AssignmentModal({ schoolId, adminId, assignment, onSaved
     setLoading(true);
     setError(null);
 
-    const payload = {
-      school_id: schoolId,
-      class: cls,
-      subject,
-      term,
-      title: title.trim(),
-      activity_type: "tracing" as const,
-      content_keys: selected,
-      due_date: dueDate || null,
-      created_by: adminId,
-    };
+    const res = await fetch("/api/school/assignments", {
+      method: isEdit ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schoolId,
+        assignmentId: isEdit ? assignment!.id : undefined,
+        cls,
+        subject,
+        term,
+        title,
+        contentKeys: selected,
+        dueDate: dueDate || null,
+        autoAssign: !isEdit && autoAssign,
+      }),
+    });
 
-    let assignmentId: string | null = null;
-
-    if (isEdit) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("assignments").update(payload).eq("id", assignment!.id);
-      if (error) { setError(error.message); setLoading(false); return; }
-      assignmentId = assignment!.id;
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("assignments").insert(payload).select("id").single();
-      if (error) { setError(error.message); setLoading(false); return; }
-      assignmentId = data.id;
-    }
-
-    // Auto-assign to all students in this class
-    if (autoAssign && assignmentId && !isEdit) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: students } = await (supabase as any)
-        .from("children")
-        .select("id")
-        .eq("school_id", schoolId)
-        .eq("class", cls);
-
-      if (students && students.length > 0) {
-        const rows = students.map((s: { id: string }) => ({
-          assignment_id: assignmentId,
-          child_id: s.id,
-          completed: false,
-        }));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from("assignment_progress").insert(rows);
-      }
-    }
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? "Something went wrong."); setLoading(false); return; }
 
     onSaved();
   }

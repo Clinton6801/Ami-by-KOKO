@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Koko from "@/components/characters/Koko";
 import { WORLD_ITEMS, WORLD_CATEGORIES, getItemsByCategory } from "@/lib/content/world";
+import { useChild } from "@/hooks/useChild";
 
 interface Props { params: Promise<{ category: string; item: string }> }
 
@@ -17,6 +18,7 @@ export default function WorldItemPage({ params }: Props) {
 
   const [speaking, setSpeaking] = useState(false);
   const [known, setKnown] = useState(false);
+  const { activeChild } = useChild();
 
   const items = getItemsByCategory(category);
   const idx = items.findIndex(i => i.key === itemKey);
@@ -74,7 +76,22 @@ export default function WorldItemPage({ params }: Props) {
       {/* I know this! */}
       <div className="w-full max-w-sm">
         {!known ? (
-          <button onClick={() => setKnown(true)}
+          <button onClick={async () => {
+            setKnown(true);
+            if (activeChild?.id) {
+              await fetch("/api/progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  childId: activeChild.id,
+                  language: "english",
+                  letter: itemKey,
+                  subject: "world",
+                  patch: { mastered: true, heard_count: 1 },
+                }),
+              });
+            }
+          }}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-extrabold text-lg py-4 rounded-3xl transition shadow-md shadow-green-200 active:scale-95">
             ✅ Yes, I know this!
           </button>

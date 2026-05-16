@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * useProgress — reads and writes phonics/numeracy/world progress per child.
+ *
+ * Reads use the browser Supabase client (RLS allows school admins to SELECT).
+ * Writes go through /api/progress (service role) so school children
+ * (parent_id = null) are not blocked by the parent-scoped RLS policy.
+ */
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { LetterProgress, Language } from "@/types";
@@ -28,54 +35,68 @@ export function useProgress(childId: string | null, language: Language) {
     }
     fetch();
     return () => { cancelled = true; };
-  }, [childId, language, supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId, language]);
 
-  /** Upsert a progress row — called on heard / correct / traced */
+  /** Write progress via service-role API — works for both parent and school children */
   const upsertProgress = useCallback(
-    async (letter: string, patch: Partial<Omit<LetterProgress, "id" | "child_id" | "language" | "letter">>) => {
+    async (
+      letter: string,
+      patch: Partial<Omit<LetterProgress, "id" | "child_id" | "language" | "letter">>,
+      subject = "literacy"
+    ) => {
       if (!childId) return;
 
-      const existing = progress.find(p => p.letter === letter);
+      // Optimistic local update
+      setProgress(prev => {
+        const existing = prev.find(p => p.letter === letter);
+        if (existing) {
+          return prev.map(p =>
+            p.id === existing.id
+              ? { ...p, ...patch, last_activity: new Date().toISOString() }
+              : p
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: `temp-${letter}`,
+            child_id: childId,
+            language,
+            letter,
+            heard_count: 0,
+            traced_count: 0,
+            mastered: false,
+            last_activity: new Date().toISOString(),
+            ...patch,
+          } as LetterProgress,
+        ];
+      });
 
-      if (existing) {
-        const updated = { ...patch, last_activity: new Date().toISOString() };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any).from("progress").update(updated).eq("id", existing.id);
-        setProgress(prev => prev.map(p => p.id === existing.id ? { ...p, ...updated } : p));
-      } else {
-        const newRow = {
-          child_id: childId,
-          language,
-          letter,
-          heard_count: 0,
-          traced_count: 0,
-          mastered: false,
-          ...patch,
-          last_activity: new Date().toISOString(),
-        };
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data } = await (supabase as any).from("progress").insert(newRow).select().single();
-        if (data) setProgress(prev => [...prev, data as LetterProgress]);
-      }
+      // Persist via API
+      await fetch("/api/progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId, language, letter, subject, patch }),
+      });
     },
-    [childId, language, progress, supabase]
+    [childId, language]
   );
 
-  const recordHeard = useCallback((letter: string) => {
+  const recordHeard = useCallback((letter: string, subject = "literacy") => {
     const existing = progress.find(p => p.letter === letter);
-    return upsertProgress(letter, { heard_count: (existing?.heard_count ?? 0) + 1 });
+    return upsertProgress(letter, { heard_count: (existing?.heard_count ?? 0) + 1 }, subject);
   }, [progress, upsertProgress]);
 
-  const recordCorrect = useCallback((letter: string) => {
+  const recordCorrect = useCallback((letter: string, subject = "literacy") => {
     const existing = progress.find(p => p.letter === letter);
-    const newCount = (existing?.heard_count ?? 0) + 1;
-    return upsertProgress(letter, { heard_count: newCount, mastered: true });
+    return upsertProgress(letter, { heard_count: (existing?.heard_count ?? 0) + 1, mastered: true }, subject);
   }, [progress, upsertProgress]);
 
-  const recordTraced = useCallback((letter: string) => {
+  const recordTraced = useCallback((letter: string, subject = "literacy") => {
     const existing = progress.find(p => p.letter === letter);
     const newCount = (existing?.traced_count ?? 0) + 1;
-    return upsertProgress(letter, { traced_count: newCount, mastered: newCount >= 3 });
+    return upsertProgress(letter, { traced_count: newCount, mastered: newCount >= 3 }, subject);
   }, [progress, upsertProgress]);
 
   const masteredLetters = progress.filter(p => p.mastered).map(p => p.letter);

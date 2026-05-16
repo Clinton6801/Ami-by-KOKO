@@ -28,11 +28,8 @@ export default function PhonicsGridPage({ params }: Props) {
 
   const lang = language as Language;
   const alphabet = Object.values(LETTER_DATA);
-  const { activeChild } = useChild();
+  const { activeChild, loading: childLoading } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, lang);
-
-  // Show skeleton while children/progress loads
-  const { loading: childLoading } = useChild();
 
   if (childLoading) {
     return (

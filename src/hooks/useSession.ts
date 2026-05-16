@@ -2,14 +2,16 @@
 
 /**
  * useSession — tracks time spent in each mode.
- * Writes a session row on mount, updates ended_at on unmount.
+ * Writes a session row on mount via /api/sessions (service role),
+ * updates ended_at on unmount.
+ *
+ * Uses the API route instead of the browser client so school children
+ * (who have no parent_id) are not blocked by RLS.
  */
 import { useEffect, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { AppMode } from "@/types";
 
 export function useSession(childId: string | null | undefined, mode: AppMode) {
-  const supabase = createClient();
   const sessionId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -18,15 +20,14 @@ export function useSession(childId: string | null | undefined, mode: AppMode) {
     let cancelled = false;
 
     async function startSession() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
-        .from("sessions")
-        .insert({ child_id: childId, mode })
-        .select("id")
-        .single();
-
-      if (!cancelled && data) {
-        sessionId.current = data.id;
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId, mode }),
+      });
+      if (!cancelled && res.ok) {
+        const json = await res.json();
+        sessionId.current = json.sessionId ?? null;
       }
     }
 
@@ -35,12 +36,12 @@ export function useSession(childId: string | null | undefined, mode: AppMode) {
     return () => {
       cancelled = true;
       if (sessionId.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any)
-          .from("sessions")
-          .update({ ended_at: new Date().toISOString() })
-          .eq("id", sessionId.current)
-          .then(() => {});
+        // Fire-and-forget — best effort on unmount
+        fetch("/api/sessions", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: sessionId.current }),
+        });
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

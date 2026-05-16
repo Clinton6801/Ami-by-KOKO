@@ -21,31 +21,49 @@ export default function EditChildModal({ child, onSaved, onClose }: EditChildMod
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isSchoolChild = !!child.school_id && !child.parent_id;
+
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!name.trim()) return;
     setLoading(true);
     setError(null);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
-      .from("children")
-      .update({
-        name: name.trim(),
-        age: age ? parseInt(age) : null,
-        avatar_url: avatar,
-      })
-      .eq("id", child.id)
-      .select()
-      .single();
+    const payload = {
+      name: name.trim(),
+      age: age ? parseInt(age) : null,
+      avatar_url: avatar,
+    };
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return;
+    if (isSchoolChild) {
+      // School children: use service-role API (parent_id is null, browser client RLS blocks update)
+      const res = await fetch("/api/school/students", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: child.school_id,
+          studentId: child.id,
+          name: payload.name,
+          age: payload.age,
+          avatar: payload.avatar_url,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error ?? "Failed to save."); setLoading(false); return; }
+      onSaved({ ...child, name: payload.name, age: payload.age ?? undefined, avatar_url: payload.avatar_url });
+    } else {
+      // Parent children: browser client is fine (parent_id = auth.uid() policy passes)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("children")
+        .update(payload)
+        .eq("id", child.id)
+        .select()
+        .single();
+
+      if (error) { setError(error.message); setLoading(false); return; }
+      onSaved(data as Child);
     }
-
-    onSaved(data as Child);
   }
 
   return (
