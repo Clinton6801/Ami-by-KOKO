@@ -339,6 +339,105 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* ── Pricing ────────────────────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="text-center mb-10 sm:mb-14">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-stone-900 mb-3">Simple, honest pricing</h2>
+          <p className="text-stone-500 max-w-xl mx-auto text-sm sm:text-base">
+            Start free. Upgrade when your child is hooked.
+          </p>
+        </motion.div>
+
+        {/* Plan comparison table */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-12">
+          {/* Free */}
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="bg-white rounded-3xl p-6 shadow-md border border-stone-100 flex flex-col gap-4">
+            <div>
+              <p className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Free Forever</p>
+              <p className="text-3xl font-extrabold text-stone-900">₦0</p>
+              <p className="text-stone-500 text-sm mt-1">No credit card needed</p>
+            </div>
+            <ul className="flex flex-col gap-2 text-sm flex-1">
+              {["Letters A–F ✅","Numbers 1–3 ✅","Body Parts ✅","3 story shards ✅","3 DJ pads ✅"].map(f => (
+                <li key={f} className="text-stone-600">{f}</li>
+              ))}
+              {["Letters G–Z 🔒","Numbers 4–10 🔒","All languages 🔒"].map(f => (
+                <li key={f} className="text-stone-400">{f}</li>
+              ))}
+            </ul>
+            <Link href="/auth/signup"
+              className="w-full text-center bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl transition text-sm">
+              Start free →
+            </Link>
+          </motion.div>
+
+          {/* Explorer */}
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="bg-amber-500 rounded-3xl p-6 shadow-xl shadow-amber-200 flex flex-col gap-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-2xl">
+              MOST POPULAR
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-100 uppercase tracking-wide mb-1">Explorer</p>
+              <p className="text-3xl font-extrabold text-white">₦1,500<span className="text-base font-normal">/mo</span></p>
+              <p className="text-amber-100 text-sm mt-1">or ₦15,000/yr · 2 months free</p>
+            </div>
+            <ul className="flex flex-col gap-2 text-sm flex-1">
+              {["Full A–Z letters ✅","Numbers 1–10 ✅","All 5 categories ✅","Full story ✅","All 8 DJ pads ✅","1 child profile","Yorùbá 🔜"].map(f => (
+                <li key={f} className="text-white">{f}</li>
+              ))}
+            </ul>
+            <Link href="/auth/signup"
+              className="w-full text-center bg-white text-amber-600 font-extrabold py-3 rounded-2xl transition hover:bg-amber-50 text-sm">
+              Start free, then upgrade →
+            </Link>
+          </motion.div>
+
+          {/* Family */}
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-3xl p-6 shadow-md border border-stone-100 flex flex-col gap-4">
+            <div>
+              <p className="text-xs font-bold text-stone-400 uppercase tracking-wide mb-1">Family</p>
+              <p className="text-3xl font-extrabold text-stone-900">₦2,500<span className="text-base font-normal">/mo</span></p>
+              <p className="text-stone-500 text-sm mt-1">or ₦25,000/yr · 2 months free</p>
+            </div>
+            <ul className="flex flex-col gap-2 text-sm flex-1">
+              {["Everything in Explorer ✅","Up to 4 children ✅","Family progress dashboard ✅","Igbo + Hausa when live 🔜"].map(f => (
+                <li key={f} className="text-stone-600">{f}</li>
+              ))}
+            </ul>
+            <Link href="/auth/signup"
+              className="w-full text-center bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-3 rounded-2xl transition text-sm">
+              Start free, then upgrade →
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* School pricing */}
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="bg-gradient-to-br from-green-800 to-green-900 rounded-3xl p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div>
+              <p className="text-green-300 text-xs font-bold uppercase tracking-wide mb-1">School Plans</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-white mb-2">For nurseries &amp; primary schools</h3>
+              <div className="flex flex-col sm:flex-row gap-4 text-sm text-green-200">
+                <span>🌱 Starter — ₦150,000/yr · up to 50 pupils</span>
+                <span>📈 Growth — ₦250,000/yr · up to 150 pupils</span>
+                <span>🏫 Academy — ₦400,000/yr · unlimited</span>
+              </div>
+            </div>
+            <a href="mailto:schools@amibykoko.com"
+              className="flex-shrink-0 bg-amber-500 hover:bg-amber-400 text-white font-bold px-6 py-3 rounded-2xl transition shadow-lg text-sm whitespace-nowrap">
+              Contact us for a demo →
+            </a>
+          </div>
+        </motion.div>
+      </section>
+
       {/* ── School CTA ─────────────────────────────────────── */}
       <section className="mx-4 sm:mx-6 lg:mx-auto max-w-5xl mb-16 sm:mb-24">
         <motion.div

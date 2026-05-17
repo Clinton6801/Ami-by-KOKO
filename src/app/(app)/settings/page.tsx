@@ -4,25 +4,41 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useChild } from "@/hooks/useChild";
+import { useAccess } from "@/hooks/useAccess";
 import CreateChildModal from "@/components/ui/CreateChildModal";
-import EditChildModal from "@/components/ui/EditChildModal";
 import { AnimatePresence } from "framer-motion";
-import { openPaystackPopup, generateReference, PRICING } from "@/lib/paystack/client";
-import type { Child } from "@/types";
+import { openPaystackPopup, generateReference, PAYSTACK_PLANS } from "@/lib/paystack/client";
 
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
   const { children, activeChild, selectChild } = useChild();
+  const { hasPaid } = useAccess(activeChild);
   const [showAddChild, setShowAddChild] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [subPlan, setSubPlan] = useState<string | null>(null);
+  const [subExpiry, setSubExpiry] = useState<string | null>(null);
 
-  // Load user info once
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) { setUserId(user.id); setUserEmail(user.email ?? null); }
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setUserId(user.id);
+      setUserEmail(user.email ?? null);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: sub } = await (supabase as any)
+        .from("subscriptions")
+        .select("plan, expires_at")
+        .eq("profile_id", user.id)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (sub) {
+        setSubPlan(sub.plan);
+        setSubExpiry(sub.expires_at ? new Date(sub.expires_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : null);
+      }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -33,16 +49,16 @@ export default function SettingsPage() {
     router.push("/auth/login");
   }
 
-  function handleUpgrade() {
+  function handlePlan(planKey: keyof typeof PAYSTACK_PLANS) {
     if (!userEmail) return;
+    const plan = PAYSTACK_PLANS[planKey];
     openPaystackPopup({
       email: userEmail,
-      amount: PRICING.individual_monthly,
-      reference: generateReference("yoruba"),
-      onSuccess: (ref) => {
-        console.log("Payment success:", ref);
-        // TODO: verify on server and update subscription
-        alert("Payment successful! Yorùbá will be unlocked shortly.");
+      amount: plan.amount,
+      reference: generateReference(plan.id),
+      planId: plan.id,
+      onSuccess: () => {
+        setTimeout(() => window.location.reload(), 1500);
       },
       onClose: () => {},
     });
@@ -61,11 +77,8 @@ export default function SettingsPage() {
               Signed in as <span className="font-medium text-stone-700">{userEmail}</span>
             </p>
           )}
-          <button
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="flex items-center gap-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-2xl transition disabled:opacity-60"
-          >
+          <button onClick={handleSignOut} disabled={signingOut}
+            className="flex items-center gap-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2.5 rounded-2xl transition disabled:opacity-60">
             🚪 {signingOut ? "Signing out…" : "Sign out"}
           </button>
         </section>
@@ -94,12 +107,96 @@ export default function SettingsPage() {
             ))}
           </div>
           {userId && (
-            <button
-              onClick={() => setShowAddChild(true)}
-              className="mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 py-3 rounded-2xl transition"
-            >
+            <button onClick={() => setShowAddChild(true)}
+              className="mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 py-3 rounded-2xl transition">
               ➕ Add child profile
             </button>
+          )}
+        </section>
+
+        {/* Subscription */}
+        <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+          <h2 className="font-bold text-stone-700 mb-3">Subscription</h2>
+
+          {hasPaid ? (
+            /* ── Active plan ── */
+            <div className="flex flex-col gap-3">
+              <div className="bg-green-50 rounded-2xl p-4 ring-1 ring-green-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-bold text-green-800 text-sm capitalize">
+                    {subPlan?.replace(/-/g, " ") ?? "Explorer"} ✅
+                  </p>
+                  {subExpiry && <p className="text-xs text-green-600">Renews {subExpiry}</p>}
+                </div>
+                <div className="flex flex-col gap-1 text-xs text-green-700">
+                  {["Full A–Z letters","Full numbers 1–10","All 5 World categories","Full Story Mode","All 8 DJ pads","Yorùbá (coming soon)"].map(f => (
+                    <span key={f}>✅ {f}</span>
+                  ))}
+                </div>
+              </div>
+              {subPlan?.startsWith("explorer") && (
+                <button onClick={() => handlePlan("FAMILY_MONTHLY")}
+                  className="w-full text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 py-3 rounded-2xl transition border border-amber-200">
+                  Upgrade to Family (up to 4 children) →
+                </button>
+              )}
+            </div>
+          ) : (
+            /* ── Free plan ── */
+            <div className="flex flex-col gap-4">
+              <div className="bg-stone-50 rounded-2xl p-4 ring-1 ring-stone-200">
+                <p className="font-bold text-stone-700 text-sm mb-2">Current plan: Free</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <span className="text-green-600">✅ Letters A–F</span>
+                  <span className="text-stone-400">🔒 Letters G–Z</span>
+                  <span className="text-green-600">✅ Numbers 1–3</span>
+                  <span className="text-stone-400">🔒 Numbers 4–10</span>
+                  <span className="text-green-600">✅ Body Parts</span>
+                  <span className="text-stone-400">🔒 All languages</span>
+                  <span className="text-green-600">✅ 3 story shards</span>
+                  <span className="text-stone-400">🔒 Full story</span>
+                </div>
+              </div>
+
+              {/* Explorer Monthly */}
+              <button onClick={() => handlePlan("EXPLORER_MONTHLY")}
+                className="w-full flex items-center justify-between bg-amber-50 border-2 border-amber-200 rounded-2xl px-4 py-3 hover:border-amber-400 transition active:scale-95">
+                <div className="text-left">
+                  <p className="font-bold text-stone-900 text-sm">Explorer Monthly</p>
+                  <p className="text-xs text-stone-500">Full access · 1 child · cancel anytime</p>
+                </div>
+                <p className="font-extrabold text-amber-600">₦1,500<span className="text-xs font-normal">/mo</span></p>
+              </button>
+
+              {/* Explorer Yearly — best value */}
+              <button onClick={() => handlePlan("EXPLORER_YEARLY")}
+                className="w-full flex items-center justify-between bg-amber-500 rounded-2xl px-4 py-3 hover:bg-amber-600 transition relative overflow-hidden active:scale-95">
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-bl-xl">
+                  BEST VALUE
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-white text-sm">Explorer Annual</p>
+                  <p className="text-xs text-amber-100">2 months free · 1 child</p>
+                </div>
+                <p className="font-extrabold text-white">₦15,000<span className="text-xs font-normal">/yr</span></p>
+              </button>
+
+              {/* Family */}
+              <button onClick={() => handlePlan("FAMILY_MONTHLY")}
+                className="w-full flex items-center justify-between bg-white border border-stone-200 rounded-2xl px-4 py-3 hover:border-amber-300 transition active:scale-95">
+                <div className="text-left">
+                  <p className="font-bold text-stone-900 text-sm">Family Plan</p>
+                  <p className="text-xs text-stone-500">Up to 4 children</p>
+                </div>
+                <p className="font-extrabold text-stone-700">₦2,500<span className="text-xs font-normal">/mo</span></p>
+              </button>
+
+              {/* School CTA */}
+              <a href="mailto:schools@amibykoko.com"
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-green-700 bg-green-50 hover:bg-green-100 py-3 rounded-2xl transition border border-green-200">
+                🏫 For schools — contact us
+              </a>
+            </div>
           )}
         </section>
 
@@ -107,36 +204,30 @@ export default function SettingsPage() {
         <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
           <h2 className="font-bold text-stone-700 mb-3">Language Packs</h2>
           <div className="flex flex-col gap-3">
-            {/* English — free */}
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-2xl ring-1 ring-green-200">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🇬🇧</span>
                 <div>
                   <p className="font-semibold text-stone-800 text-sm">English</p>
-                  <p className="text-xs text-stone-500">Full A–Z phonics</p>
+                  <p className="text-xs text-stone-500">{hasPaid ? "Full A–Z" : "A–F free"}</p>
                 </div>
               </div>
-              <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">Free ✓</span>
+              <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                {hasPaid ? "Full ✓" : "Free ✓"}
+              </span>
             </div>
-
-            {/* Yorùbá — paid */}
-            <div className="flex items-center justify-between p-3 bg-stone-50 rounded-2xl ring-1 ring-stone-200">
+            <div className={`flex items-center justify-between p-3 rounded-2xl ring-1 ${hasPaid ? "bg-green-50 ring-green-200" : "bg-stone-50 ring-stone-200"}`}>
               <div className="flex items-center gap-3">
                 <span className="text-2xl">🇳🇬</span>
                 <div>
                   <p className="font-semibold text-stone-800 text-sm">Yorùbá</p>
-                  <p className="text-xs text-stone-500">₦1,500/month</p>
+                  <p className="text-xs text-stone-500">{hasPaid ? "Included in your plan" : "Requires Explorer plan"}</p>
                 </div>
               </div>
-              <button
-                onClick={handleUpgrade}
-                className="text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 px-3 py-1.5 rounded-full transition"
-              >
-                Unlock
-              </button>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${hasPaid ? "text-green-700 bg-green-100" : "text-stone-400 bg-stone-100"}`}>
+                {hasPaid ? "Soon ✓" : "🔒 Locked"}
+              </span>
             </div>
-
-            {/* Coming soon */}
             {["Igbo", "Hausa"].map(lang => (
               <div key={lang} className="flex items-center justify-between p-3 bg-stone-50 rounded-2xl ring-1 ring-stone-100 opacity-60">
                 <div className="flex items-center gap-3">
@@ -152,7 +243,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* App info */}
+        {/* About */}
         <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
           <h2 className="font-bold text-stone-700 mb-3">About</h2>
           <p className="text-sm text-stone-500">Àmì by Kòkò — v0.1.0 MVP</p>

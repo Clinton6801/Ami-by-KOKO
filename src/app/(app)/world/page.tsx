@@ -2,29 +2,66 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useState } from "react";
 import { WORLD_CATEGORIES } from "@/lib/content/world";
+import { useChild } from "@/hooks/useChild";
+import { useAccess } from "@/hooks/useAccess";
+import { isCategoryFree } from "@/lib/access";
+import UpgradePrompt from "@/components/ui/UpgradePrompt";
 
 export default function WorldPage() {
+  const { activeChild } = useChild();
+  const { hasPaid } = useAccess(activeChild);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
   return (
-    <div className="flex flex-col gap-6 pb-10">
-      <div className="text-center">
-        <h1 className="text-2xl font-extrabold text-stone-800">My World</h1>
-        <p className="text-stone-500 text-sm mt-1">Tap a category to explore!</p>
+    <>
+      <div className="flex flex-col gap-6 pb-10">
+        <div className="text-center">
+          <h1 className="text-2xl font-extrabold text-stone-800">My World</h1>
+          <p className="text-stone-500 text-sm mt-1">Tap a category to explore!</p>
+          {!hasPaid && (
+            <p className="text-amber-600 text-xs font-semibold mt-1">
+              🔒 Animals, Fruits, Objects & Weather locked ·{" "}
+              <button onClick={() => setUpgradeOpen(true)} className="underline">Unlock Explorer</button>
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {WORLD_CATEGORIES.map((cat, i) => {
+            const locked = !hasPaid && !isCategoryFree(cat.key);
+            return (
+              <motion.div key={cat.key}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }} whileTap={locked ? {} : { scale: 0.94 }}>
+                {locked ? (
+                  <button
+                    onClick={() => setUpgradeOpen(true)}
+                    aria-label={`${cat.label} — locked`}
+                    className={`relative w-full flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white transition opacity-60`}
+                  >
+                    <span className="text-4xl">{cat.emoji}</span>
+                    <span className="font-extrabold text-sm text-center">{cat.label}</span>
+                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-3xl flex flex-col items-center justify-center gap-1 z-10">
+                      <span className="text-2xl">🔒</span>
+                      <span className="text-xs font-bold text-amber-700">Explorer</span>
+                    </div>
+                  </button>
+                ) : (
+                  <Link href={`/world/${cat.key}`}
+                    className={`flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white transition hover:scale-105`}>
+                    <span className="text-4xl">{cat.emoji}</span>
+                    <span className="font-extrabold text-sm text-center">{cat.label}</span>
+                  </Link>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {WORLD_CATEGORIES.map((cat, i) => (
-          <motion.div key={cat.key}
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }} whileTap={{ scale: 0.94 }}>
-            <Link href={`/world/${cat.key}`}
-              className={`flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white transition hover:scale-105`}>
-              <span className="text-4xl">{cat.emoji}</span>
-              <span className="font-extrabold text-sm text-center">{cat.label}</span>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-    </div>
+      <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="Animals, Fruits, Objects & Weather" />
+    </>
   );
 }

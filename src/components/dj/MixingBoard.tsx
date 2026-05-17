@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import SoundPad from "./SoundPad";
 import { togglePadSound, stopAllSounds } from "@/lib/audio/mixer";
+import { isPadFree } from "@/lib/access";
 
 const DJ_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
-// Colours per pad
 const PAD_COLOURS = [
   "from-amber-400 to-orange-400",
   "from-green-400 to-emerald-500",
@@ -19,22 +19,26 @@ const PAD_COLOURS = [
   "from-fuchsia-400 to-pink-400",
 ];
 
-export default function MixingBoard() {
+interface MixingBoardProps {
+  hasPaid?: boolean;
+  onLockedTap?: () => void;
+}
+
+export default function MixingBoard({ hasPaid = false, onLockedTap }: MixingBoardProps) {
   const [activePads, setActivePads] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Stop all sounds when component unmounts
   useEffect(() => () => { stopAllSounds(); }, []);
 
-  async function handleToggle(letter: string) {
+  async function handleToggle(letter: string, index: number) {
+    if (!hasPaid && !isPadFree(index)) {
+      onLockedTap?.();
+      return;
+    }
     await togglePadSound(letter);
     setActivePads(prev => {
       const next = new Set(prev);
-      if (next.has(letter)) {
-        next.delete(letter);
-      } else {
-        next.add(letter);
-      }
+      if (next.has(letter)) { next.delete(letter); } else { next.add(letter); }
       setIsPlaying(next.size > 0);
       return next;
     });
@@ -48,7 +52,6 @@ export default function MixingBoard() {
 
   return (
     <div className="w-full max-w-sm flex flex-col gap-5">
-
       {/* Status bar */}
       <div className="bg-white rounded-2xl p-3 flex items-center justify-between shadow-sm ring-1 ring-stone-100">
         <div className="flex items-center gap-2">
@@ -62,35 +65,45 @@ export default function MixingBoard() {
           </span>
         </div>
         {isPlaying && (
-          <button
-            onClick={handleStopAll}
-            className="text-xs font-bold text-red-500 hover:text-red-600 px-3 py-1 rounded-xl bg-red-50 hover:bg-red-100 transition"
-          >
+          <button onClick={handleStopAll}
+            className="text-xs font-bold text-red-500 hover:text-red-600 px-3 py-1 rounded-xl bg-red-50 hover:bg-red-100 transition">
             Stop all
           </button>
         )}
       </div>
 
       {/* Pad grid */}
-      <div role="group" aria-label="DJ mixing board"
-        className="grid grid-cols-4 gap-2 sm:gap-3">
-        {DJ_LETTERS.map((letter, i) => (
-          <SoundPad
-            key={letter}
-            letter={letter}
-            active={activePads.has(letter)}
-            colour={PAD_COLOURS[i]}
-            onToggle={() => handleToggle(letter)}
-          />
-        ))}
+      <div role="group" aria-label="DJ mixing board" className="grid grid-cols-4 gap-2 sm:gap-3">
+        {DJ_LETTERS.map((letter, i) => {
+          const locked = !hasPaid && !isPadFree(i);
+          return locked ? (
+            <button
+              key={letter}
+              onClick={() => onLockedTap?.()}
+              aria-label={`Pad ${letter} — locked`}
+              className={`relative aspect-square rounded-2xl bg-gradient-to-br ${PAD_COLOURS[i]} opacity-50 flex flex-col items-center justify-center gap-1 text-white`}
+              style={{ minHeight: 64 }}
+            >
+              <span className="text-xl font-extrabold">{letter}</span>
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-0.5 z-10">
+                <span className="text-lg">🔒</span>
+                <span className="text-[9px] font-bold text-amber-700">Explorer</span>
+              </div>
+            </button>
+          ) : (
+            <SoundPad
+              key={letter}
+              letter={letter}
+              active={activePads.has(letter)}
+              colour={PAD_COLOURS[i]}
+              onToggle={() => handleToggle(letter, i)}
+            />
+          );
+        })}
       </div>
 
-      {/* Hint */}
       <p className="text-center text-xs text-stone-400">
         🎵 Tap pads to layer sounds · Tap again to stop
-      </p>
-      <p className="text-center text-xs text-stone-300">
-        Audio clips needed in /public/audio/english/ for sound
       </p>
     </div>
   );

@@ -10,6 +10,7 @@ export interface PaystackConfig {
   /** Amount in kobo (₦1 = 100 kobo) */
   amount: number;
   reference: string;
+  planId?: string;
   onSuccess: (reference: string) => void;
   onClose: () => void;
 }
@@ -33,7 +34,7 @@ export function openPaystackPopup(config: PaystackConfig): void {
     email: config.email,
     amount: config.amount,
     ref: config.reference,
-    metadata: { plan: "individual" },
+    metadata: { plan: config.planId ?? "explorer-monthly" },
     callback: (response: { reference: string }) => {
       config.onSuccess(response.reference);
     },
@@ -50,13 +51,57 @@ export function generateReference(prefix = "ami"): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-/** Subscription pricing in kobo (₦1 = 100 kobo) */
+// ─── Subscription plans ───────────────────────────────────────────────────────
+
+export const PAYSTACK_PLANS = {
+  EXPLORER_MONTHLY: {
+    id: "explorer-monthly",
+    name: "Explorer",
+    amount: 150000,           // ₦1,500/month in kobo
+    interval: "monthly" as const,
+    description: "Full access for 1 child",
+    maxChildren: 1,
+    displayPrice: "₦1,500/month",
+    displayPriceYearly: "₦15,000/year",
+  },
+  EXPLORER_YEARLY: {
+    id: "explorer-yearly",
+    name: "Explorer (Annual)",
+    amount: 1500000,          // ₦15,000/year in kobo
+    interval: "annually" as const,
+    description: "2 months free",
+    maxChildren: 1,
+    displayPrice: "₦15,000/year",
+  },
+  FAMILY_MONTHLY: {
+    id: "family-monthly",
+    name: "Family",
+    amount: 250000,           // ₦2,500/month in kobo
+    interval: "monthly" as const,
+    description: "Full access for up to 4 children",
+    maxChildren: 4,
+    displayPrice: "₦2,500/month",
+    displayPriceYearly: "₦25,000/year",
+  },
+  FAMILY_YEARLY: {
+    id: "family-yearly",
+    name: "Family (Annual)",
+    amount: 2500000,          // ₦25,000/year in kobo
+    interval: "annually" as const,
+    description: "2 months free",
+    maxChildren: 4,
+    displayPrice: "₦25,000/year",
+  },
+} as const;
+
+export type PaystackPlanId = typeof PAYSTACK_PLANS[keyof typeof PAYSTACK_PLANS]["id"];
+
+/** Legacy alias — kept for backward compatibility */
 export const PRICING = {
-  explorer_monthly:  150000,   // ₦1,500/month
-  explorer_annual:   1200000,  // ₦12,000/year
-  family_monthly:    250000,   // ₦2,500/month
-  family_annual:     2000000,  // ₦20,000/year
-  school_annual:     5000000,  // ₦50,000/year per school
-  // Legacy alias — used in existing Yorùbá unlock flow
-  individual_monthly: 150000,
+  individual_monthly: PAYSTACK_PLANS.EXPLORER_MONTHLY.amount,
+  explorer_monthly:   PAYSTACK_PLANS.EXPLORER_MONTHLY.amount,
+  explorer_annual:    PAYSTACK_PLANS.EXPLORER_YEARLY.amount,
+  family_monthly:     PAYSTACK_PLANS.FAMILY_MONTHLY.amount,
+  family_annual:      PAYSTACK_PLANS.FAMILY_YEARLY.amount,
+  school_annual:      5000000, // ₦50,000/year — invoiced manually
 } as const;

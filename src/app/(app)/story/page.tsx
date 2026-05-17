@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { useChild } from "@/hooks/useChild";
 import { useProgress } from "@/hooks/useProgress";
+import { useAccess } from "@/hooks/useAccess";
+import { isShardFree } from "@/lib/access";
 import Certificate from "@/components/ui/Certificate";
+import UpgradePrompt from "@/components/ui/UpgradePrompt";
 
 const STORY_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 const TOTAL = STORY_LETTERS.length;
@@ -27,12 +30,16 @@ function getCurrentScene(shards: number) {
 export default function StoryPage() {
   const { activeChild } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, "english");
+  const { hasPaid } = useAccess(activeChild);
 
   const shardsCollected = STORY_LETTERS.filter(l => masteredLetters.includes(l)).length;
-  const completed = shardsCollected >= TOTAL;
-  const pct = Math.round((shardsCollected / TOTAL) * 100);
-  const scene = getCurrentScene(shardsCollected);
+  // Free users can only complete first 3 shards
+  const effectiveShards = hasPaid ? shardsCollected : Math.min(shardsCollected, 3);
+  const completed = hasPaid && shardsCollected >= TOTAL;
+  const pct = Math.round((effectiveShards / TOTAL) * 100);
+  const scene = getCurrentScene(effectiveShards);
   const [showCert, setShowCert] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   return (
     <div className="flex flex-col items-center gap-5 pb-10 max-w-sm mx-auto w-full">
@@ -80,27 +87,43 @@ export default function StoryPage() {
           Voice Shards
         </p>
         <div role="list" aria-label="Voice shards" className="grid grid-cols-5 gap-2">
-          {STORY_LETTERS.map((letter) => {
+          {STORY_LETTERS.map((letter, idx) => {
             const collected = masteredLetters.includes(letter);
+            const shardLocked = !hasPaid && !isShardFree(idx);
             return (
               <motion.div
                 key={letter}
                 role="listitem"
-                aria-label={`Shard ${letter}${collected ? ", collected" : ", not yet found"}`}
-                animate={collected ? { scale: [1, 1.2, 1] } : {}}
+                aria-label={shardLocked ? `Shard ${idx + 1} — locked` : `Shard ${letter}${collected ? ", collected" : ", not yet found"}`}
+                animate={collected && !shardLocked ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 0.4 }}
-                className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-0.5 text-sm font-extrabold shadow-sm transition
-                  ${collected
+                onClick={shardLocked ? () => setUpgradeOpen(true) : undefined}
+                className={`aspect-square rounded-2xl flex flex-col items-center justify-center gap-0.5 text-sm font-extrabold shadow-sm transition cursor-${shardLocked ? "pointer" : "default"}
+                  ${shardLocked
+                    ? "bg-stone-100 text-stone-300"
+                    : collected
                     ? "bg-gradient-to-br from-amber-400 to-orange-400 text-white shadow-amber-200"
                     : "bg-stone-100 text-stone-400"
                   }`}
               >
-                <span className="text-base">{collected ? letter : "?"}</span>
-                {collected && <span className="text-xs opacity-80">{letter.toLowerCase()}</span>}
+                {shardLocked ? (
+                  <span className="text-base">🔒</span>
+                ) : (
+                  <>
+                    <span className="text-base">{collected ? letter : "?"}</span>
+                    {collected && <span className="text-xs opacity-80">{letter.toLowerCase()}</span>}
+                  </>
+                )}
               </motion.div>
             );
           })}
         </div>
+        {!hasPaid && (
+          <p className="text-center text-xs text-amber-600 font-semibold mt-2">
+            🔒 Shards 4–10 locked ·{" "}
+            <button onClick={() => setUpgradeOpen(true)} className="underline">Unlock Explorer</button>
+          </p>
+        )}
       </div>
 
       {/* ── Milestone badges ── */}
@@ -171,6 +194,8 @@ export default function StoryPage() {
           onClose={() => setShowCert(false)}
         />
       )}
+
+      <UpgradePrompt isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} feature="the full story (all 10 shards)" />
 
     </div>
   );
