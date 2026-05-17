@@ -6,10 +6,12 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import CreateChildModal from "@/components/ui/CreateChildModal";
 import OnboardingFlow from "@/components/ui/OnboardingFlow";
+import SongButton from "@/components/ui/SongButton";
 import { useProgress } from "@/hooks/useProgress";
 import { useStreak } from "@/hooks/useStreak";
 import { useChild } from "@/hooks/useChild";
 import { useAssignments } from "@/hooks/useAssignments";
+import { getSongOfTheDay, getLetterSong } from "@/lib/audio/songs";
 import { SUBJECT_EMOJIS, CLASS_LABELS, type ChildWithClass } from "@/types";
 
 const MODES = [
@@ -21,6 +23,10 @@ const MODES = [
 ];
 
 const STORY_LETTERS = ["A","B","C","D","E","F","G","H","I","J"];
+
+// Song of the Day — always free, rotates daily
+const SOTD_LETTER = getSongOfTheDay();
+const SOTD_SONG = getLetterSong(SOTD_LETTER);
 
 // ─── School Admin Home ────────────────────────────────────────────────────────
 
@@ -293,6 +299,23 @@ export default function HomePage() {
                 </Link>
               </motion.div>
             ))}
+          </div>
+        </div>
+
+        {/* ── Song of the Day ── */}
+        <div className="px-4 mt-6">
+          <h2 className="text-base font-bold text-stone-700 mb-3">🎵 Song of the Day</h2>
+          <div className="bg-white rounded-3xl shadow-sm ring-1 ring-violet-100 p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-2xl font-extrabold text-white shadow-sm flex-shrink-0">
+                {SOTD_LETTER}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-stone-800 text-sm">Letter {SOTD_LETTER} Song</p>
+                <p className="text-stone-500 text-xs">Free every day — sing along with Kòkò!</p>
+              </div>
+            </div>
+            <SongButton song={SOTD_SONG} label={`🎵 Sing the ${SOTD_LETTER} song`} />
           </div>
         </div>
 

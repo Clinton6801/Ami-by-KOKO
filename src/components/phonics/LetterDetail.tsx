@@ -6,9 +6,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TracingCanvas from "./TracingCanvas";
 import Koko from "@/components/characters/Koko";
+import SongButton from "@/components/ui/SongButton";
 import { playLetterSound } from "@/lib/audio/speech";
+import { getLetterSong } from "@/lib/audio/songs";
+import { isLetterFree } from "@/lib/access";
 import { useProgress } from "@/hooks/useProgress";
 import { useChild } from "@/hooks/useChild";
+import { useAccess } from "@/hooks/useAccess";
 import type { Language, LetterConfig } from "@/types";
 
 interface LetterDetailProps {
@@ -26,10 +30,14 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
     activeChild?.id ?? null,
     language
   );
+  const { hasPaid } = useAccess(activeChild);
 
   const [speaking, setSpeaking] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
+
+  const song = getLetterSong(letter);
+  const songLocked = !hasPaid && !isLetterFree(letter);
 
   const word = language === "yoruba" ? letterData.localWord : letterData.englishWord;
   const meaning = language === "yoruba" ? `(${letterData.localWordMeaning})` : "";
@@ -139,6 +147,13 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
           {speaking ? "🔊" : "▶"}
         </div>
       </motion.button>
+
+      {/* ── Sing with Kòkò ── */}
+      <SongButton
+        song={song}
+        label="🎵 Sing with Kòkò"
+        locked={songLocked}
+      />
 
       {/* ── Did you get it right? ── */}
       <div className="w-full max-w-sm">

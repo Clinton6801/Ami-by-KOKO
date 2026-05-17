@@ -8,7 +8,11 @@ import Link from "next/link";
 import TracingCanvas from "@/components/phonics/TracingCanvas";
 import Koko from "@/components/characters/Koko";
 import CountingActivity from "@/components/numeracy/CountingActivity";
+import SongButton from "@/components/ui/SongButton";
+import { getNumberSong } from "@/lib/audio/songs";
+import { isNumberFree } from "@/lib/access";
 import { useChild } from "@/hooks/useChild";
+import { useAccess } from "@/hooks/useAccess";
 
 const NUMBER_DATA: Record<string, { numeral: string; word: string; yorubaWord: string; imageUrl: string; colour: string; itemName: string }> = {
   "1":  { numeral:"1",  word:"One",   yorubaWord:"Ọkan", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F96D.svg", colour:"from-amber-400 to-orange-400", itemName:"mango"     },
@@ -36,6 +40,9 @@ export default function NumberDetailContent({ language, number }: { language: st
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
   const { activeChild } = useChild();
+  const { hasPaid } = useAccess(activeChild);
+  const song = getNumberSong(parseInt(number));
+  const songLocked = !hasPaid && !isNumberFree(number);
 
   const idx = NUMBERS.indexOf(number);
   const nextNum = idx < NUMBERS.length - 1 ? NUMBERS[idx + 1] : null;
@@ -103,6 +110,13 @@ export default function NumberDetailContent({ language, number }: { language: st
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-amber-100 p-5">
         <CountingActivity count={parseInt(number)} imageUrl={data.imageUrl} itemName={data.itemName} />
       </div>
+
+      {/* ── Count with Kòkò song ── */}
+      <SongButton
+        song={song}
+        label="🎵 Count with Kòkò"
+        locked={songLocked}
+      />
 
       <div className="w-full max-w-sm">
         <AnimatePresence mode="wait">

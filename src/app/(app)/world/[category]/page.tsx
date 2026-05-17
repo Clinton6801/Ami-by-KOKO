@@ -1,10 +1,15 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { WORLD_CATEGORIES, getItemsByCategory } from "@/lib/content/world";
+import { getWorldSong } from "@/lib/audio/songs";
+import { isCategoryFree } from "@/lib/access";
+import { useChild } from "@/hooks/useChild";
+import { useAccess } from "@/hooks/useAccess";
+import SongButton from "@/components/ui/SongButton";
 
 interface Props { params: Promise<{ category: string }> }
 
@@ -14,6 +19,10 @@ export default function WorldCategoryPage({ params }: Props) {
   if (!cat) notFound();
 
   const items = getItemsByCategory(category);
+  const song = getWorldSong(category);
+  const { activeChild } = useChild();
+  const { hasPaid } = useAccess(activeChild);
+  const songLocked = !hasPaid && !isCategoryFree(category);
 
   return (
     <div className="pb-10">
@@ -22,6 +31,15 @@ export default function WorldCategoryPage({ params }: Props) {
           {cat.emoji} {cat.label}
         </h1>
         <p className="text-stone-500 text-sm mt-1">Tap to learn the name!</p>
+      </div>
+
+      {/* ── Category song banner ── */}
+      <div className="mb-5 flex justify-center">
+        <SongButton
+          song={song}
+          label={`🎵 Sing the ${cat.label} song`}
+          locked={songLocked}
+        />
       </div>
 
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">

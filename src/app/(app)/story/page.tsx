@@ -9,6 +9,8 @@ import { useAccess } from "@/hooks/useAccess";
 import { isShardFree } from "@/lib/access";
 import Certificate from "@/components/ui/Certificate";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
+import SongButton from "@/components/ui/SongButton";
+import type { SongData } from "@/lib/audio/songs";
 
 const STORY_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 const TOTAL = STORY_LETTERS.length;
@@ -22,6 +24,13 @@ const SCENES = [
   { shards: 8,  title: "Almost there — Kòkò can sing!",     body: "Eight shards! Kòkò is dancing on Àmì's arm. His feathers are glowing bright green. Just two more shards to go!",                                        bg: "from-green-100 to-emerald-100", koko: "🥳" },
   { shards: 10, title: "Kòkò has his voice back!",          body: "All 10 shards collected! Kòkò bursts into song — the most beautiful sound in the whole forest. Àmì and Kòkò dance together. You did it!",               bg: "from-amber-300 to-orange-300",  koko: "🎉" },
 ];
+
+// Celebration song — always free, plays when story is complete
+const CELEBRATION_SONG: SongData = {
+  key: "koko-restored",
+  lyrics: "Kòkò has his voice back! Kòkò has his voice back! Sing and dance and shout hooray — Kòkò sings again today! A, B, C, D, E, F, G — Kòkò sings for you and me! Thank you for restoring Kòkò's voice — you made the very best choice!",
+  audioPath: "/audio/songs/koko-restored.mp3",
+};
 
 function getCurrentScene(shards: number) {
   return [...SCENES].reverse().find(s => shards >= s.shards) ?? SCENES[0];
@@ -177,6 +186,8 @@ export default function StoryPage() {
               {activeChild?.name ?? "You"} restored Kòkò&apos;s voice!
             </p>
           </div>
+          {/* Celebration song — always free */}
+          <SongButton song={CELEBRATION_SONG} label="🎵 Hear Kòkò sing!" />
           <button
             onClick={() => setShowCert(true)}
             className="bg-white text-amber-600 font-extrabold px-8 py-3 rounded-2xl transition hover:bg-amber-50 shadow-md active:scale-95"
