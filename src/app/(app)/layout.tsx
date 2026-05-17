@@ -18,14 +18,32 @@ export default async function AppLayout({
     redirect('/auth/login')
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single<Profile>()
+  // Students (role = "student" in user_metadata) don't have a profiles row.
+  // They get a minimal profile object so the layout renders correctly.
+  const isStudent = user.user_metadata?.role === "student";
 
-  if (!profile) {
-    redirect('/auth/login')
+  let profile: Profile;
+
+  if (isStudent) {
+    profile = {
+      id: user.id,
+      role: "parent", // render parent nav for students
+      full_name: user.user_metadata?.child_id ? "Student" : "Student",
+      school_id: user.user_metadata?.school_id ?? null,
+      created_at: user.created_at ?? new Date().toISOString(),
+    };
+  } else {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single<Profile>()
+
+    if (!profileData) {
+      redirect('/auth/login')
+    }
+
+    profile = profileData;
   }
 
   return (

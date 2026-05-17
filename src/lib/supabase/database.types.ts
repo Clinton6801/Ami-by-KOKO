@@ -77,6 +77,7 @@ export interface Database {
           class: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
           term: 1 | 2 | 3 | null;
           student_pin: string | null;
+          auth_user_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -89,6 +90,7 @@ export interface Database {
           class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
           term?: 1 | 2 | 3 | null;
           student_pin?: string | null;
+          auth_user_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -101,6 +103,7 @@ export interface Database {
           class?: "sprout_1" | "sprout_2" | "sprout_3" | "stepping_stone" | null;
           term?: 1 | 2 | 3 | null;
           student_pin?: string | null;
+          auth_user_id?: string | null;
           created_at?: string;
         };
       };

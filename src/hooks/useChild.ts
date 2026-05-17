@@ -16,32 +16,60 @@ export function useChild() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
-      .from("children")
-      .select("*")
-      .eq("parent_id", user.id)
-      .order("created_at", { ascending: true });
+    // Check user role from metadata
+    const role = user.user_metadata?.role;
 
-    if (error) {
-      setError(error.message);
-    } else {
-      const kids = (data ?? []) as Child[];
-      setChildren(kids);
+    if (role === "student") {
+      // Student auth — fetch the single child linked to this auth account
+      const childId = user.user_metadata?.child_id;
+      if (!childId) { setLoading(false); return; }
 
-      const savedId = typeof window !== "undefined"
-        ? localStorage.getItem("activeChildId")
-        : null;
-      const saved = kids.find(c => c.id === savedId);
-      setActiveChild(prev => {
-        // If we already have an active child, keep it updated
-        if (prev) {
-          const refreshed = kids.find(c => c.id === prev.id);
-          return refreshed ?? saved ?? kids[0] ?? null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("children")
+        .select("*")
+        .eq("id", childId)
+        .single();
+
+      if (error) {
+        setError(error.message);
+      } else if (data) {
+        const kid = data as Child;
+        setChildren([kid]);
+        setActiveChild(kid);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("activeChildId", kid.id);
         }
-        return saved ?? kids[0] ?? null;
-      });
+      }
+    } else {
+      // Parent or school admin — fetch children by parent_id
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("children")
+        .select("*")
+        .eq("parent_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        const kids = (data ?? []) as Child[];
+        setChildren(kids);
+
+        const savedId = typeof window !== "undefined"
+          ? localStorage.getItem("activeChildId")
+          : null;
+        const saved = kids.find(c => c.id === savedId);
+        setActiveChild(prev => {
+          if (prev) {
+            const refreshed = kids.find(c => c.id === prev.id);
+            return refreshed ?? saved ?? kids[0] ?? null;
+          }
+          return saved ?? kids[0] ?? null;
+        });
+      }
     }
+
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -55,7 +83,6 @@ export function useChild() {
     }
   }
 
-  /** Call after editing a child to update local state without a full refetch */
   function updateChild(updated: Child) {
     setChildren(prev => prev.map(c => c.id === updated.id ? updated : c));
     if (activeChild?.id === updated.id) setActiveChild(updated);

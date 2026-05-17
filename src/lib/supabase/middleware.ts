@@ -49,6 +49,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Already logged in — redirect away from auth pages (but NOT student-login)
+  // Students (role in metadata) should also be redirected to /home
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone()

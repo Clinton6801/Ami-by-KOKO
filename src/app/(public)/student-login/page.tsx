@@ -7,16 +7,20 @@
  * 1. Enter school code (e.g. AMIK-0042)
  * 2. See class list for that school → tap your name
  * 3. Enter 4-digit PIN on a big number pad
- * 4. Logged in → /home
+ * 4. Logged in via Supabase Auth → /home (works on any device)
  *
  * No keyboard required. All tap targets ≥ 64×64px.
- * Uses server-side session stored in localStorage (no Supabase Auth for students).
+ *
+ * Auth strategy: each student has a Supabase Auth account with
+ * synthetic email {child_id}@students.amibykoko.com and
+ * password {school_id}-{pin}. The login UI never exposes this —
+ * the child only ever sees school code + name + PIN.
  */
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import type { ChildWithClass, StudentLoginSession } from "@/types";
+import type { ChildWithClass } from "@/types";
 
 type Step = "school_code" | "pick_name" | "enter_pin";
 
@@ -39,7 +43,6 @@ function SchoolCodeStep({
     setLoading(true);
     setError(null);
 
-    // Look up school by code
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: school, error: schoolErr } = await (supabase as any)
       .from("schools")
@@ -53,11 +56,10 @@ function SchoolCodeStep({
       return;
     }
 
-    // Fetch students for this school
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: students } = await (supabase as any)
       .from("children")
-      .select("id, name, avatar_url, class, term, student_pin, school_id")
+      .select("id, name, avatar_url, class, term, student_pin, school_id, auth_user_id")
       .eq("school_id", school.id)
       .order("name", { ascending: true });
 
@@ -167,21 +169,23 @@ function PickNameStep({
 function PinStep({
   student,
   schoolId,
-  schoolCode,
   onBack,
 }: {
   student: ChildWithClass;
   schoolId: string;
-  schoolCode: string;
   onBack: () => void;
 }) {
+  const supabase = createClient();
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("Wrong number, try again!");
   const [shaking, setShaking] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const DIGITS = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
 
-  function handleDigit(d: string) {
+  async function handleDigit(d: string) {
+    if (loading) return;
     if (d === "⌫") {
       setPin(p => p.slice(0, -1));
       setError(false);
@@ -189,29 +193,46 @@ function PinStep({
     }
     if (d === "") return;
     if (pin.length >= 4) return;
+
     const next = pin + d;
     setPin(next);
     setError(false);
 
     if (next.length === 4) {
-      // Verify PIN
-      if (next === student.student_pin) {
-        // Save session to localStorage
-        const session: StudentLoginSession = {
-          school_code: schoolCode,
-          child_id: student.id,
-          school_id: schoolId,
-          class: student.class ?? "sprout_1",
-          term: student.term ?? 1,
-        };
-        localStorage.setItem("student_session", JSON.stringify(session));
+      setLoading(true);
+
+      // Strategy 1: try Supabase Auth sign-in (cross-device, works if auth account exists)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const authEmail = `${student.id}@students.amibykoko.com`;
+      const authPassword = `${schoolId}-${next}`;
+
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: authPassword,
+      });
+
+      if (!signInErr) {
+        // Real Supabase session — set activeChildId and go home
         localStorage.setItem("activeChildId", student.id);
         window.location.href = "/home";
-      } else {
-        setError(true);
-        setShaking(true);
-        setTimeout(() => { setPin(""); setShaking(false); }, 600);
+        return;
       }
+
+      // Strategy 2: fallback — verify PIN locally (for students created before auth migration)
+      if (next === student.student_pin) {
+        // PIN matches but no auth account yet — still let them in via localStorage
+        // (admin should re-save the student to create their auth account)
+        localStorage.setItem("activeChildId", student.id);
+        window.location.href = "/home";
+        return;
+      }
+
+      // Wrong PIN
+      setError(true);
+      setErrorMsg("Wrong number, try again!");
+      setShaking(true);
+      setLoading(false);
+      setTimeout(() => { setPin(""); setShaking(false); }, 600);
     }
   }
 
@@ -246,7 +267,7 @@ function PinStep({
       </motion.div>
 
       {error && (
-        <p className="text-red-500 text-sm font-semibold">Wrong number, try again!</p>
+        <p className="text-red-500 text-sm font-semibold">{errorMsg}</p>
       )}
 
       {/* Number pad */}
@@ -255,7 +276,7 @@ function PinStep({
           <button
             key={i}
             onClick={() => handleDigit(d)}
-            disabled={d === ""}
+            disabled={d === "" || loading}
             className={`
               flex items-center justify-center rounded-2xl font-extrabold text-2xl transition
               ${d === "" ? "invisible" : ""}
@@ -263,11 +284,14 @@ function PinStep({
                 ? "bg-stone-100 text-stone-500 hover:bg-stone-200 active:scale-90"
                 : "bg-white shadow-md ring-1 ring-stone-100 text-stone-800 hover:bg-amber-50 active:scale-90"
               }
+              ${loading ? "opacity-50" : ""}
             `}
             style={{ minHeight: 64, minWidth: 64 }}
             aria-label={d === "⌫" ? "Delete" : d === "" ? "" : `Number ${d}`}
           >
-            {d}
+            {loading && pin.length === 4 ? (
+              <span className="text-base animate-pulse">…</span>
+            ) : d}
           </button>
         ))}
       </div>
@@ -336,7 +360,6 @@ export default function StudentLoginPage() {
             key="enter_pin"
             student={selectedStudent}
             schoolId={schoolId}
-            schoolCode={schoolCode}
             onBack={() => setStep("pick_name")}
           />
         )}
