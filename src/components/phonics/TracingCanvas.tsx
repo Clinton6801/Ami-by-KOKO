@@ -21,10 +21,11 @@ const BRUSH_RADIUS = 10; // px — how wide the child's "brush" is
 interface SingleCanvasProps {
   letter: string;
   isLower?: boolean;
+  hideLabel?: boolean;
   onComplete?: () => void;
 }
 
-function SingleCanvas({ letter, isLower = false, onComplete }: SingleCanvasProps) {
+function SingleCanvas({ letter, isLower = false, hideLabel = false, onComplete }: SingleCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const completedRef = useRef(false);
@@ -179,9 +180,11 @@ function SingleCanvas({ letter, isLower = false, onComplete }: SingleCanvasProps
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">
-        {isLower ? "Small" : "Capital"} {letter}
-      </span>
+      {!hideLabel && (
+        <span className="text-xs font-bold text-stone-500 uppercase tracking-wide">
+          {isLower ? "Small" : "Capital"} {letter}
+        </span>
+      )}
 
       <div className="relative">
         <canvas
@@ -255,9 +258,11 @@ function SingleCanvas({ letter, isLower = false, onComplete }: SingleCanvasProps
 interface TracingCanvasProps {
   letter: string;
   onTraced?: () => void;
+  /** "letter" (default) shows uppercase + lowercase. "number" shows a single canvas. */
+  mode?: "letter" | "number";
 }
 
-export default function TracingCanvas({ letter, onTraced }: TracingCanvasProps) {
+export default function TracingCanvas({ letter, onTraced, mode = "letter" }: TracingCanvasProps) {
   const [upperDone, setUpperDone] = useState(false);
   const [lowerDone, setLowerDone] = useState(false);
 
@@ -272,6 +277,24 @@ export default function TracingCanvas({ letter, onTraced }: TracingCanvasProps) 
     if (upperDone && lowerDone) onTraced?.();
   }, [upperDone, lowerDone, onTraced]);
 
+  // ── Number mode — single canvas, no uppercase/lowercase labels ──
+  if (mode === "number") {
+    return (
+      <div className="flex flex-col items-center gap-4 w-full">
+        <p className="text-sm font-semibold text-stone-600 text-center">
+          Colour in the number with your finger ✏️
+        </p>
+        <SingleCanvas
+          letter={letter}
+          isLower={false}
+          hideLabel
+          onComplete={onTraced}
+        />
+      </div>
+    );
+  }
+
+  // ── Letter mode — uppercase + lowercase ──
   return (
     <div className="flex flex-col items-center gap-4 w-full">
       <p className="text-sm font-semibold text-stone-600 text-center">

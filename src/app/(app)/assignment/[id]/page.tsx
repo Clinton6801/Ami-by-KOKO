@@ -167,6 +167,7 @@ function ItemActivity({ itemKey, subject, index, total, onComplete }: ItemActivi
         </p>
         <TracingCanvas
           letter={subject === "literacy" ? itemKey.toUpperCase() : data.display}
+          mode={subject === "numeracy" ? "number" : "letter"}
           onTraced={handleTraced}
         />
       </div>
