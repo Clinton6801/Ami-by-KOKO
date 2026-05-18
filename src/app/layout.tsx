@@ -15,11 +15,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_NG",
     siteName: "Àmì by Kòkò",
+    url: "https://ami-by-koko.vercel.app",
+    images: [
+      {
+        url: "https://ami-by-koko.vercel.app/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Àmì by Kòkò — Phonics for African Children",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Àmì by Kòkò — Phonics for African Children",
     description: "Learn letters the fun way with Àmì and her talking parrot Kòkò.",
+    images: ["https://ami-by-koko.vercel.app/og-image.png"],
   },
   icons: {
     icon: [
