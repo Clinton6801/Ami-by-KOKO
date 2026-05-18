@@ -7,13 +7,16 @@ import Link from "next/link";
 import TracingCanvas from "./TracingCanvas";
 import Koko from "@/components/characters/Koko";
 import SongButton from "@/components/ui/SongButton";
+import Certificate from "@/components/ui/Certificate";
 import { playLetterSound } from "@/lib/audio/speech";
 import { getLetterSong } from "@/lib/audio/songs";
 import { isLetterFree } from "@/lib/access";
 import { useProgress } from "@/hooks/useProgress";
 import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
-import type { Language, LetterConfig } from "@/types";
+import { useCertificates } from "@/hooks/useCertificates";
+import { CERTIFICATE_CONFIGS } from "@/types";
+import type { Language, LetterConfig, CertificateType } from "@/types";
 
 interface LetterDetailProps {
   letter: string;
@@ -26,18 +29,36 @@ type CheckState = "idle" | "correct" | "incorrect";
 export default function LetterDetail({ letter, language, letterData }: LetterDetailProps) {
   const router = useRouter();
   const { activeChild } = useChild();
-  const { progress, recordHeard, recordCorrect, recordTraced } = useProgress(
+  const { progress, recordHeard, recordCorrect, recordTraced, newMilestone, clearMilestone } = useProgress(
     activeChild?.id ?? null,
     language
   );
   const { hasPaid } = useAccess(activeChild);
+  const { awardCertificate } = useCertificates(activeChild?.id ?? null);
 
   const [speaking, setSpeaking] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
+  const [showCertificate, setShowCertificate] = useState<CertificateType | null>(null);
+  const milestoneShowing = { current: false };
 
   const song = getLetterSong(letter);
   const songLocked = !hasPaid && !isLetterFree(letter);
+
+  // When a milestone fires here (on the letter page), award it and show the cert
+  useEffect(() => {
+    if (!newMilestone || !activeChild?.id) return;
+    async function handle() {
+      const awarded = await awardCertificate(newMilestone!);
+      if (awarded) {
+        milestoneShowing.current = true;
+        setShowCertificate(newMilestone);
+      }
+      clearMilestone();
+    }
+    handle();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newMilestone]);
 
   const word = language === "yoruba" ? letterData.localWord : letterData.englishWord;
   const meaning = language === "yoruba" ? `(${letterData.localWordMeaning})` : "";
@@ -62,8 +83,15 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
   async function handleCorrect() {
     setCheckState("correct");
     await recordCorrect(letter);
+    // Auto-navigate after 1.2s — but only if no milestone cert fires.
+    // If a cert fires, the useEffect sets milestoneShowing.current = true
+    // and the cert's onClose handles navigation instead.
     if (nextLetter) {
-      setTimeout(() => router.push(`/phonics/${language}/${nextLetter.toLowerCase()}`), 1200);
+      setTimeout(() => {
+        if (!milestoneShowing.current) {
+          router.push(`/phonics/${language}/${nextLetter.toLowerCase()}`);
+        }
+      }, 1200);
     }
   }
 
@@ -256,6 +284,24 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
           </Link>
         ) : <div className="flex-1" />}
       </div>
+
+      {/* ── Milestone certificate ── */}
+      <AnimatePresence>
+        {showCertificate && (
+          <Certificate
+            childName={activeChild?.name ?? "Champion"}
+            achievement={CERTIFICATE_CONFIGS[showCertificate].achievement}
+            subject={CERTIFICATE_CONFIGS[showCertificate].subject}
+            onClose={() => {
+              setShowCertificate(null);
+              // Navigate to next letter after closing cert
+              if (nextLetter) {
+                router.push(`/phonics/${language}/${nextLetter.toLowerCase()}`);
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
 
     </div>
   );
