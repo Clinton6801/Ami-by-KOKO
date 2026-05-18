@@ -10,11 +10,13 @@
  */
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { CertificateType } from "@/types";
 
 export function useStreak(childId: string | null | undefined) {
   const supabase = createClient();
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [certificateToAward, setCertificateToAward] = useState<CertificateType | null>(null);
 
   useEffect(() => {
     if (!childId) return;
@@ -73,5 +75,12 @@ export function useStreak(childId: string | null | undefined) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childId]);
 
-  return { streak, loading };
+  // Check for 7-day streak certificate
+  useEffect(() => {
+    if (streak >= 7) {
+      setCertificateToAward('weekly_streak');
+    }
+  }, [streak]);
+
+  return { streak, loading, certificateToAward, setCertificateToAward };
 }

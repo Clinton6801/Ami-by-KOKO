@@ -6,13 +6,14 @@
  */
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Assignment, AssignmentProgress, ChildWithClass } from "@/types";
+import type { Assignment, AssignmentProgress, ChildWithClass, CertificateType } from "@/types";
 
 export function useAssignments(child: ChildWithClass | null | undefined) {
   const supabase = createClient();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [progress, setProgress] = useState<AssignmentProgress[]>([]);
   const [loading, setLoading] = useState(false);
+  const [certificateToAward, setCertificateToAward] = useState<CertificateType | null>(null);
 
   useEffect(() => {
     if (!child?.school_id || !child?.class) return;
@@ -58,5 +59,13 @@ export function useAssignments(child: ChildWithClass | null | undefined) {
     return progress.some(p => p.assignment_id === assignmentId && p.completed);
   }
 
-  return { assignments, progress, isCompleted, loading };
+  // Check for 5 assignments completed certificate
+  useEffect(() => {
+    const completedCount = progress.filter(p => p.completed).length;
+    if (completedCount >= 5) {
+      setCertificateToAward('assignment_champion');
+    }
+  }, [progress]);
+
+  return { assignments, progress, isCompleted, loading, certificateToAward, setCertificateToAward };
 }

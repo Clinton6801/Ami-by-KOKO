@@ -267,6 +267,26 @@ export interface Database {
           created_at?: string;
         };
       };
+      certificates: {
+        Row: {
+          id: string;
+          child_id: string;
+          type: "first_steps" | "letter_master" | "number_star" | "world_explorer" | "story_hero" | "assignment_champion" | "weekly_streak";
+          earned_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          type: "first_steps" | "letter_master" | "number_star" | "world_explorer" | "story_hero" | "assignment_champion" | "weekly_streak";
+          earned_at?: string;
+        };
+        Update: {
+          id?: string;
+          child_id?: string;
+          type?: "first_steps" | "letter_master" | "number_star" | "world_explorer" | "story_hero" | "assignment_champion" | "weekly_streak";
+          earned_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

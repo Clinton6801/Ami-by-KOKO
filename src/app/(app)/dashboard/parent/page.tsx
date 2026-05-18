@@ -1,27 +1,106 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChild } from "@/hooks/useChild";
 import { useProgress } from "@/hooks/useProgress";
 import { useStreak } from "@/hooks/useStreak";
+import { useCertificates } from "@/hooks/useCertificates";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { LETTER_DATA } from "@/lib/audio/clips";
 import EditChildModal from "@/components/ui/EditChildModal";
-import type { Child } from "@/types";
+import Certificate from "@/components/ui/Certificate";
+import type { Child, CertificateType } from "@/types";
+import { CERTIFICATE_CONFIGS } from "@/types";
 
 const ALPHABET = Object.keys(LETTER_DATA);
 
+// ─── Certificate card in gallery ──────────────────────────────────────────────
+
+function CertificateCard({
+  type,
+  earnedAt,
+  childName,
+  onView,
+}: {
+  type: CertificateType;
+  earnedAt: string;
+  childName: string;
+  onView: () => void;
+}) {
+  const config = CERTIFICATE_CONFIGS[type];
+  const date = new Date(earnedAt).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+  });
+
+  const ICONS: Record<CertificateType, string> = {
+    first_steps:          "👣",
+    letter_master:        "🔤",
+    number_star:          "⭐",
+    world_explorer:       "🌍",
+    story_hero:           "🦜",
+    assignment_champion:  "📝",
+    weekly_streak:        "🔥",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 ring-1 ring-amber-200 flex flex-col gap-2"
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-3xl">{ICONS[type]}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-stone-800 text-sm">{config.title}</p>
+          <p className="text-stone-500 text-xs truncate">{config.achievement}</p>
+        </div>
+      </div>
+      <p className="text-xs text-stone-400">Earned {date}</p>
+      <button
+        onClick={onView}
+        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs py-2 rounded-xl transition active:scale-95"
+      >
+        View &amp; Download 📥
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function ParentDashboardPage() {
   const { children, activeChild, selectChild, updateChild, loading: childrenLoading } = useChild();
-  const { progress, masteredCount, loading: progressLoading } = useProgress(activeChild?.id ?? null, "english");
+  const {
+    progress, masteredCount, masteredLetters, loading: progressLoading,
+    newMilestone, clearMilestone,
+  } = useProgress(activeChild?.id ?? null, "english");
   const { streak } = useStreak(activeChild?.id);
+  const { certificates, loading: certsLoading, awardCertificate } = useCertificates(activeChild?.id ?? null);
+
   const [editingChild, setEditingChild] = useState<Child | null>(null);
+  const [showCertificate, setShowCertificate] = useState<CertificateType | null>(null);
 
   const loading = progressLoading;
-
   const totalLetters = ALPHABET.length;
   const pct = Math.round((masteredCount / totalLetters) * 100);
+
+  // When a new milestone fires: award it in DB, then show the certificate
+  useEffect(() => {
+    if (!newMilestone || !activeChild?.id) return;
+
+    async function handleMilestone() {
+      const awarded = await awardCertificate(newMilestone!);
+      if (awarded) {
+        setShowCertificate(newMilestone);
+      }
+      clearMilestone();
+    }
+    handleMilestone();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newMilestone]);
+
+  const activeCertConfig = showCertificate ? CERTIFICATE_CONFIGS[showCertificate] : null;
 
   return (
     <div className="flex flex-col gap-5 pb-10">
@@ -36,7 +115,7 @@ export default function ParentDashboardPage() {
         </div>
       )}
 
-      {/* Child switcher — only shown when loaded */}
+      {/* Child switcher */}
       {!childrenLoading && children.length > 0 && (
         <div className="flex gap-2 flex-wrap items-center">
           {children.map(child => (
@@ -50,8 +129,6 @@ export default function ParentDashboardPage() {
               {child.name}
             </button>
           ))}
-
-          {/* Edit active child */}
           {activeChild && (
             <button onClick={() => setEditingChild(activeChild)}
               className="flex items-center gap-1 px-3 py-2 rounded-2xl text-xs font-semibold text-stone-500 bg-white ring-1 ring-stone-200 hover:bg-stone-50 transition">
@@ -102,9 +179,7 @@ export default function ParentDashboardPage() {
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-3xl p-4 ring-1 ring-green-100 flex items-center gap-3">
               <span className="text-3xl">🔥</span>
               <div>
-                <p className="font-extrabold text-green-800">
-                  {streak} day streak!
-                </p>
+                <p className="font-extrabold text-green-800">{streak} day streak!</p>
                 <p className="text-green-600 text-xs">
                   {streak >= 7 ? "Amazing consistency! Keep it up!" :
                    streak >= 3 ? "Great habit forming!" :
@@ -143,6 +218,34 @@ export default function ParentDashboardPage() {
             </div>
           </div>
 
+          {/* ── Certificates Gallery ── */}
+          <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
+            <p className="text-sm font-bold text-stone-700 mb-3">🏆 My Certificates</p>
+            {certsLoading ? (
+              <div className="flex gap-2">
+                {[1,2].map(i => <div key={i} className="flex-1 h-24 bg-stone-100 rounded-2xl animate-pulse"/>)}
+              </div>
+            ) : certificates.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-4xl mb-2">🦜</p>
+                <p className="text-stone-500 text-sm">Complete activities with Kòkò to earn certificates!</p>
+                <p className="text-stone-400 text-xs mt-1">Master letters A–F to earn your first one.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {certificates.map(cert => (
+                  <CertificateCard
+                    key={cert.id}
+                    type={cert.type}
+                    earnedAt={cert.earned_at}
+                    childName={activeChild?.name ?? "Champion"}
+                    onView={() => setShowCertificate(cert.type)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Subscription */}
           <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
             <p className="text-sm font-bold text-stone-700 mb-2">Subscription</p>
@@ -159,11 +262,20 @@ export default function ParentDashboardPage() {
         {editingChild && (
           <EditChildModal
             child={editingChild}
-            onSaved={(updated) => {
-              updateChild(updated);
-              setEditingChild(null);
-            }}
+            onSaved={(updated) => { updateChild(updated); setEditingChild(null); }}
             onClose={() => setEditingChild(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Certificate modal — milestone celebration or gallery view */}
+      <AnimatePresence>
+        {showCertificate && activeCertConfig && (
+          <Certificate
+            childName={activeChild?.name ?? "Champion"}
+            achievement={activeCertConfig.achievement}
+            subject={activeCertConfig.subject}
+            onClose={() => setShowCertificate(null)}
           />
         )}
       </AnimatePresence>

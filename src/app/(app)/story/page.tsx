@@ -2,14 +2,16 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChild } from "@/hooks/useChild";
 import { useProgress } from "@/hooks/useProgress";
 import { useAccess } from "@/hooks/useAccess";
+import { useCertificates } from "@/hooks/useCertificates";
 import { isShardFree } from "@/lib/access";
 import Certificate from "@/components/ui/Certificate";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
 import SongButton from "@/components/ui/SongButton";
+import { CERTIFICATE_CONFIGS } from "@/types";
 import type { SongData } from "@/lib/audio/songs";
 
 const STORY_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
@@ -40,15 +42,23 @@ export default function StoryPage() {
   const { activeChild } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, "english");
   const { hasPaid } = useAccess(activeChild);
+  const { awardCertificate, hasCertificate } = useCertificates(activeChild?.id ?? null);
 
   const shardsCollected = STORY_LETTERS.filter(l => masteredLetters.includes(l)).length;
-  // Free users can only complete first 3 shards
   const effectiveShards = hasPaid ? shardsCollected : Math.min(shardsCollected, 3);
   const completed = hasPaid && shardsCollected >= TOTAL;
   const pct = Math.round((effectiveShards / TOTAL) * 100);
   const scene = getCurrentScene(effectiveShards);
   const [showCert, setShowCert] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  // Award story_hero certificate when story is completed
+  useEffect(() => {
+    if (completed && !hasCertificate("story_hero")) {
+      awardCertificate("story_hero");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completed]);
 
   return (
     <div className="flex flex-col items-center gap-5 pb-10 max-w-sm mx-auto w-full">
@@ -200,8 +210,8 @@ export default function StoryPage() {
       {showCert && (
         <Certificate
           childName={activeChild?.name ?? "Champion"}
-          achievement="restored Kòkò's voice by mastering 10 letters"
-          subject="Story Mode — English Phonics"
+          achievement={CERTIFICATE_CONFIGS.story_hero.achievement}
+          subject={CERTIFICATE_CONFIGS.story_hero.subject}
           onClose={() => setShowCert(false)}
         />
       )}

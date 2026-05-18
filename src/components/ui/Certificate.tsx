@@ -2,11 +2,12 @@
 
 /**
  * Certificate — downloadable achievement certificate.
- * Generated as a canvas image, downloadable as PNG.
+ * Generated using html2canvas, downloadable as PNG.
  * Shareable on WhatsApp.
  */
-import { useRef, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import html2canvas from "html2canvas";
 
 interface CertificateProps {
   childName: string;
@@ -16,128 +17,29 @@ interface CertificateProps {
 }
 
 export default function Certificate({ childName, achievement, subject = "English Phonics", onClose }: CertificateProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const certificateRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  async function download() {
+    if (!certificateRef.current) return;
+    setDownloading(true);
 
-    const W = 800;
-    const H = 560;
-    canvas.width = W;
-    canvas.height = H;
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        backgroundColor: "#FFFBF0",
+        useCORS: true,
+      });
 
-    // Background
-    ctx.fillStyle = "#FFFBF0";
-    ctx.fillRect(0, 0, W, H);
-
-    // Amber border
-    ctx.strokeStyle = "#F59E0B";
-    ctx.lineWidth = 12;
-    ctx.strokeRect(16, 16, W - 32, H - 32);
-
-    // Inner border
-    ctx.strokeStyle = "#FCD34D";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(28, 28, W - 56, H - 56);
-
-    // Corner decorations
-    const corners = [[50, 50], [W - 50, 50], [50, H - 50], [W - 50, H - 50]];
-    corners.forEach(([x, y]) => {
-      ctx.fillStyle = "#F59E0B";
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Parrot emoji (top centre)
-    ctx.font = "56px serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🦜", W / 2, 110);
-
-    // "Certificate of Achievement"
-    ctx.fillStyle = "#92400E";
-    ctx.font = "bold 18px sans-serif";
-    ctx.letterSpacing = "4px";
-    ctx.fillText("CERTIFICATE OF ACHIEVEMENT", W / 2, 155);
-    ctx.letterSpacing = "0px";
-
-    // Divider
-    ctx.strokeStyle = "#F59E0B";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 180, 170);
-    ctx.lineTo(W / 2 + 180, 170);
-    ctx.stroke();
-
-    // "This certifies that"
-    ctx.fillStyle = "#78716C";
-    ctx.font = "italic 16px serif";
-    ctx.fillText("This certifies that", W / 2, 210);
-
-    // Child name
-    ctx.fillStyle = "#1C1917";
-    ctx.font = "bold 48px serif";
-    ctx.fillText(childName, W / 2, 270);
-
-    // Underline name
-    const nameWidth = ctx.measureText(childName).width;
-    ctx.strokeStyle = "#F59E0B";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - nameWidth / 2, 280);
-    ctx.lineTo(W / 2 + nameWidth / 2, 280);
-    ctx.stroke();
-
-    // Achievement text
-    ctx.fillStyle = "#44403C";
-    ctx.font = "18px sans-serif";
-    ctx.fillText(`has ${achievement}`, W / 2, 320);
-
-    // Subject
-    ctx.fillStyle = "#166534";
-    ctx.font = "bold 20px sans-serif";
-    ctx.fillText(subject, W / 2, 355);
-
-    // "with Àmì by Kòkò"
-    ctx.fillStyle = "#78716C";
-    ctx.font = "italic 16px serif";
-    ctx.fillText("with Àmì by Kòkò", W / 2, 390);
-
-    // Date
-    const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-    ctx.fillStyle = "#A8A29E";
-    ctx.font = "14px sans-serif";
-    ctx.fillText(date, W / 2, 430);
-
-    // Bottom divider
-    ctx.strokeStyle = "#FCD34D";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 200, 450);
-    ctx.lineTo(W / 2 + 200, 450);
-    ctx.stroke();
-
-    // Signature line
-    ctx.fillStyle = "#D97706";
-    ctx.font = "bold italic 22px serif";
-    ctx.fillText("Àmì by Kòkò", W / 2, 490);
-    ctx.fillStyle = "#A8A29E";
-    ctx.font = "11px sans-serif";
-    ctx.fillText("amibykoko.com", W / 2, 510);
-
-    setDataUrl(canvas.toDataURL("image/png"));
-  }, [childName, achievement, subject]);
-
-  function download() {
-    if (!dataUrl) return;
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `${childName.replace(/\s+/g, "_")}_certificate.png`;
-    a.click();
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${childName.replace(/\s+/g, "_")}_certificate.png`;
+      link.click();
+    } catch (error) {
+      console.error("Failed to download certificate:", error);
+    } finally {
+      setDownloading(false);
+    }
   }
 
   function shareWhatsApp() {
@@ -147,6 +49,8 @@ export default function Certificate({ childName, achievement, subject = "English
     window.open(`https://wa.me/?text=${text}`, "_blank");
   }
 
+  const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div
@@ -154,17 +58,84 @@ export default function Certificate({ childName, achievement, subject = "English
         animate={{ scale: 1, opacity: 1 }}
         className="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-lg"
       >
-        {/* Hidden canvas for generation */}
-        <canvas ref={canvasRef} className="hidden" />
+        {/* Certificate preview - rendered with html2canvas */}
+        <div className="p-4 bg-stone-50 border-b border-stone-100">
+          <div
+            ref={certificateRef}
+            className="bg-[#FFFBF0] p-6 rounded-2xl shadow-sm"
+            style={{ width: "100%", aspectRatio: "800/560" }}
+          >
+            {/* Amber border */}
+            <div className="border-[12px] border-[#F59E0B] rounded-lg h-full relative">
+              {/* Inner border */}
+              <div className="border-[3px] border-[#FCD34D] rounded-lg h-full m-1 relative">
+                {/* Corner decorations */}
+                <div className="absolute top-4 left-4 w-4 h-4 bg-[#F59E0B] rounded-full" />
+                <div className="absolute top-4 right-4 w-4 h-4 bg-[#F59E0B] rounded-full" />
+                <div className="absolute bottom-4 left-4 w-4 h-4 bg-[#F59E0B] rounded-full" />
+                <div className="absolute bottom-4 right-4 w-4 h-4 bg-[#F59E0B] rounded-full" />
 
-        {/* Preview */}
-        {dataUrl && (
-          <div className="p-4 bg-stone-50 border-b border-stone-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={dataUrl} alt="Certificate preview"
-              className="w-full rounded-2xl shadow-sm" />
+                {/* Content */}
+                <div className="flex flex-col items-center justify-center h-full px-4 py-2">
+                  {/* Parrot emoji */}
+                  <div className="text-5xl mb-2">🦜</div>
+
+                  {/* Certificate title */}
+                  <div className="text-[#92400E] font-bold text-sm tracking-widest mb-1">
+                    CERTIFICATE OF ACHIEVEMENT
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-3/4 h-[2px] bg-[#F59E0B] mb-3" />
+
+                  {/* "This certifies that" */}
+                  <div className="text-[#78716C] italic text-sm mb-2">
+                    This certifies that
+                  </div>
+
+                  {/* Child name */}
+                  <div className="text-[#1C1917] font-bold text-3xl mb-1">
+                    {childName}
+                  </div>
+
+                  {/* Underline name */}
+                  <div className="w-3/4 h-[2px] bg-[#F59E0B] mb-3" />
+
+                  {/* Achievement text */}
+                  <div className="text-[#44403C] text-base mb-1">
+                    has {achievement}
+                  </div>
+
+                  {/* Subject */}
+                  <div className="text-[#166534] font-bold text-lg mb-2">
+                    {subject}
+                  </div>
+
+                  {/* "with Àmì by Kòkò" */}
+                  <div className="text-[#78716C] italic text-sm mb-2">
+                    with Àmì by Kòkò
+                  </div>
+
+                  {/* Date */}
+                  <div className="text-[#A8A29E] text-xs mb-3">
+                    {date}
+                  </div>
+
+                  {/* Bottom divider */}
+                  <div className="w-4/5 h-[1px] bg-[#FCD34D] mb-2" />
+
+                  {/* Signature */}
+                  <div className="text-[#D97706] font-bold italic text-lg">
+                    Àmì by Kòkò
+                  </div>
+                  <div className="text-[#A8A29E] text-xs">
+                    amibykoko.com
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Actions */}
         <div className="p-5 flex flex-col gap-3">
@@ -172,9 +143,9 @@ export default function Certificate({ childName, achievement, subject = "English
             🎉 Certificate ready!
           </h2>
 
-          <button onClick={download}
-            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl transition shadow-md shadow-amber-200">
-            ⬇ Download PNG
+          <button onClick={download} disabled={downloading}
+            className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-2xl transition shadow-md shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed">
+            {downloading ? "⏳ Downloading..." : "⬇ Download PNG"}
           </button>
 
           <button onClick={shareWhatsApp}

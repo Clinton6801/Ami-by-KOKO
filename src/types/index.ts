@@ -209,3 +209,73 @@ export const SPROUT1_WORLD: Record<Term, string[]> = {
   2: ['dog', 'cat', 'cow', 'goat', 'chicken', 'parrot', 'mango', 'orange', 'banana'],
   3: ['cup', 'book', 'bag', 'shoe', 'ball', 'spoon', 'sun', 'rain', 'cloud'],
 }
+
+// ─── Certificate Types (Phase 2) ───────────────────────────────────────────────
+
+export type CertificateType =
+  | 'first_steps'
+  | 'letter_master'
+  | 'number_star'
+  | 'world_explorer'
+  | 'story_hero'
+  | 'assignment_champion'
+  | 'weekly_streak'
+
+export interface Certificate {
+  id: string
+  child_id: string
+  type: CertificateType
+  earned_at: string
+}
+
+export interface CertificateConfig {
+  type: CertificateType
+  title: string
+  achievement: string
+  subject?: string
+}
+
+export const CERTIFICATE_CONFIGS: Record<CertificateType, CertificateConfig> = {
+  first_steps: {
+    type: 'first_steps',
+    title: 'First Steps',
+    achievement: 'completed their first 6 letters!',
+    subject: 'English Phonics',
+  },
+  letter_master: {
+    type: 'letter_master',
+    title: 'Letter Master',
+    achievement: 'mastered all 26 letters with Kòkò!',
+    subject: 'English Phonics',
+  },
+  number_star: {
+    type: 'number_star',
+    title: 'Number Star',
+    achievement: 'counted to 10 with Kòkò!',
+    subject: 'Numbers',
+  },
+  world_explorer: {
+    type: 'world_explorer',
+    title: 'World Explorer',
+    achievement: 'explored My World with Àmì!',
+    subject: 'My World',
+  },
+  story_hero: {
+    type: 'story_hero',
+    title: 'Story Hero',
+    achievement: 'restored Kòkò\'s voice!',
+    subject: 'Story Mode',
+  },
+  assignment_champion: {
+    type: 'assignment_champion',
+    title: 'Assignment Champion',
+    achievement: 'completed 5 assignments!',
+    subject: 'Assignments',
+  },
+  weekly_streak: {
+    type: 'weekly_streak',
+    title: 'Weekly Streak',
+    achievement: 'learned with Kòkò 7 days in a row!',
+    subject: 'Learning Streak',
+  },
+}
