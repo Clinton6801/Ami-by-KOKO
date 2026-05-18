@@ -13,11 +13,11 @@ const PARENT_NAV = [
 ];
 
 const SCHOOL_NAV = [
-  { href: "/home",              emoji: "🏠", label: "Home"       },
-  { href: "/dashboard/school",  emoji: "🏫", label: "School"     },
-  { href: "/dashboard/school",  emoji: "📝", label: "Assign",    tab: "assignments" },
-  { href: "/dashboard/school",  emoji: "📊", label: "Reports",   tab: "reports"     },
-  { href: "/settings",          emoji: "👤", label: "Me"         },
+  { href: "/home",                        emoji: "🏠", label: "Home"       },
+  { href: "/dashboard/school",            emoji: "🏫", label: "School"     },
+  { href: "/dashboard/school",            emoji: "📝", label: "Assign",    tab: "assignments" },
+  { href: "/dashboard/school/analytics",  emoji: "📊", label: "Analytics"  },
+  { href: "/settings",                    emoji: "👤", label: "Me"         },
 ];
 
 interface BottomNavProps {

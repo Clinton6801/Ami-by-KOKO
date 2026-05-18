@@ -28,6 +28,7 @@ export default function SignupPage() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"parent" | "school_admin">("parent");
@@ -61,6 +62,15 @@ export default function SignupPage() {
     }
 
     // Trigger handle_new_user() creates the profile row automatically.
+    // Save phone number if provided
+    if (data.user && phone.trim()) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from("profiles")
+        .update({ phone_number: phone.trim() })
+        .eq("id", data.user.id);
+    }
+
     // For school admins, also create the school and link it.
     if (data.user && role === "school_admin" && schoolName.trim()) {
       // Create the school record
@@ -174,12 +184,28 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* WhatsApp / Phone number */}
+          <div>
+            <label htmlFor="phone" className="mb-1 block text-sm font-medium text-stone-700">
+              WhatsApp number <span className="text-stone-400 font-normal">(optional)</span>
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded-xl border border-stone-200 px-4 py-3 text-stone-900 placeholder-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              placeholder="+234 801 234 5678"
+            />
+            <p className="mt-1 text-xs text-stone-400">Get updates when your child completes activities</p>
+          </div>
+
           {/* Password */}
           <div>
             <label htmlFor="password" className="mb-1 block text-sm font-medium text-stone-700">
               Password
-            </label>
-            <div className="relative">
+            </label>            <div className="relative">
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}

@@ -299,6 +299,17 @@ export default function AssignmentPage({ params }: Props) {
           completed: true,
           completed_at: new Date().toISOString(),
         }, { onConflict: "assignment_id,child_id" });
+
+        // Notify parent via WhatsApp (fire-and-forget)
+        fetch("/api/notifications/whatsapp/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            childId: activeChild.id,
+            type: "assignment_complete",
+            detail: assignment.title,
+          }),
+        }).catch(() => {});
       }
       setCompleted(true);
     } else {

@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { openPaystackPopup, generateReference, PRICING } from "@/lib/paystack/client";
 
 const LANGUAGES = [
-  { code: "english", label: "English",  emoji: "🇬🇧", free: true,  description: "Full A–Z phonics" },
-  { code: "yoruba",  label: "Yorùbá",   emoji: "🇳🇬", free: false, description: "₦1,500/month" },
+  { code: "english", label: "English",  emoji: "🇬🇧", free: true,  description: "Full A–Z phonics", comingSoon: false },
+  { code: "yoruba",  label: "Yorùbá",   emoji: "🇳🇬", free: false, description: "₦1,500/month · Launching soon", comingSoon: true },
 ];
 
 export default function PhonicsLanguagePage() {
@@ -88,11 +88,21 @@ export default function PhonicsLanguagePage() {
                 <div>
                   <p className="font-bold text-stone-800">{lang.label}</p>
                   <p className="text-xs text-stone-500">{lang.description}</p>
+                  {lang.comingSoon && (
+                    <p className="text-xs text-amber-600 font-semibold mt-0.5">🎙️ Recordings in progress</p>
+                  )}
                 </div>
               </div>
-              <span className="text-xs font-bold text-white bg-amber-500 px-3 py-1 rounded-full flex-shrink-0">
-                🔒 Unlock
-              </span>
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <span className="text-xs font-bold text-white bg-amber-500 px-3 py-1 rounded-full">
+                  🔒 Unlock
+                </span>
+                {lang.comingSoon && (
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    Launching soon
+                  </span>
+                )}
+              </div>
             </button>
           );
         })}

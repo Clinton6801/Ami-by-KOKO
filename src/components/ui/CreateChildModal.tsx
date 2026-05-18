@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { CLASS_LABELS, ACTIVE_CLASSES, type ClassLevel, type Term } from "@/types";
+import { CLASS_LABELS, type ClassLevel, type Term } from "@/types";
+import { useClassConfig } from "@/hooks/useClassConfig";
 
 const AVATARS = ["🧒🏾", "👦🏾", "👧🏾", "🧒🏽", "👦🏽", "👧🏽", "🧒🏿", "👦🏿", "👧🏿"];
 const ALL_CLASSES: ClassLevel[] = ["sprout_1", "sprout_2", "sprout_3", "stepping_stone"];
@@ -16,6 +17,7 @@ interface CreateChildModalProps {
 
 export default function CreateChildModal({ parentId, onCreated, onClose }: CreateChildModalProps) {
   const supabase = createClient();
+  const { isClassActive } = useClassConfig();
   const [name, setName]     = useState("");
   const [age, setAge]       = useState("");
   const [avatar, setAvatar] = useState(AVATARS[2]);
@@ -112,7 +114,7 @@ export default function CreateChildModal({ parentId, onCreated, onClose }: Creat
             <p className="text-sm font-semibold text-stone-600 mb-2">Class</p>
             <div className="grid grid-cols-2 gap-2">
               {ALL_CLASSES.map(c => {
-                const active = ACTIVE_CLASSES.includes(c);
+                const active = isClassActive(c);
                 return (
                   <button key={c} type="button"
                     onClick={() => active && setCls(c)}

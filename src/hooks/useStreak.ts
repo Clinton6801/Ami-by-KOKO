@@ -67,6 +67,15 @@ export function useStreak(childId: string | null | undefined) {
       if (!cancelled) {
         setStreak(count);
         setLoading(false);
+
+        // Notify parent on 7-day streak (fire-and-forget, only once per session)
+        if (count === 7 && childId) {
+          fetch("/api/notifications/whatsapp/notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ childId, type: "streak", detail: "7-day streak" }),
+          }).catch(() => {});
+        }
       }
     }
 

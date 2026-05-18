@@ -6,9 +6,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  CLASS_LABELS, ACTIVE_CLASSES,
+  CLASS_LABELS,
   type ClassLevel, type Term, type ChildWithClass,
 } from "@/types";
+import { useClassConfig } from "@/hooks/useClassConfig";
 
 const AVATARS = ["🧒🏾","👦🏾","👧🏾","🧒🏽","👦🏽","👧🏽","🧒🏿","👦🏿","👧🏿"];
 
@@ -22,6 +23,7 @@ interface StudentModalProps {
 const ALL_CLASSES: ClassLevel[] = ["sprout_1","sprout_2","sprout_3","stepping_stone"];
 
 export default function StudentModal({ schoolId, student, onSaved, onClose }: StudentModalProps) {
+  const { isClassActive } = useClassConfig();
   const isEdit = !!student;
 
   const [name, setName]     = useState(student?.name ?? "");
@@ -117,7 +119,7 @@ export default function StudentModal({ schoolId, student, onSaved, onClose }: St
             <label className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 block">Class</label>
             <div className="grid grid-cols-2 gap-2">
               {ALL_CLASSES.map(c => {
-                const active = ACTIVE_CLASSES.includes(c);
+                const active = isClassActive(c);
                 return (
                   <button key={c} type="button"
                     onClick={() => active && setCls(c)}

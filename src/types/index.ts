@@ -210,6 +210,39 @@ export const SPROUT1_WORLD: Record<Term, string[]> = {
   3: ['cup', 'book', 'bag', 'shoe', 'ball', 'spoon', 'sun', 'rain', 'cloud'],
 }
 
+// ─── Sprout 2 Curriculum (Phase 6) ───────────────────────────────────────────
+
+/** Sprout 2 Term 1 — Sets 1 & 2 review + blending */
+export const SPROUT2_TERM1_SOUNDS = ['s', 'a', 't', 'i', 'p', 'n', 'sa', 'ta', 'si', 'na'] as const
+
+/** Sprout 2 Term 2 — Sets 3 & 4 + digraphs */
+export const SPROUT2_TERM2_SOUNDS = ['g', 'o', 'u', 'l', 'f', 'b', 'ch', 'sh', 'th', 'qu'] as const
+
+/** Sprout 2 Term 3 — Sets 5, 6 & 7 + complex sounds */
+export const SPROUT2_TERM3_SOUNDS = ['ai', 'ee', 'oa', 'oo', 'ar', 'or', 'ur', 'ow', 'oi', 'ear'] as const
+
+/** Sprout 2 numeracy — numbers 1–20, addition, subtraction */
+export const SPROUT2_NUMERACY: Record<Term, string[]> = {
+  1: ['11', '12', '13', '14', '15', '16', '17', '18', '19', '20'],
+  2: ['1+1', '2+1', '3+1', '2+2', '3+2', '4+1', '5+1', '3+3', '4+2', '5+2'],
+  3: ['circle', 'square', 'triangle', 'rectangle', '5-1', '5-2', '4-1', '3-1', '6-2', '7-3'],
+}
+
+/** Sprout 2 World Knowledge — community, food, environment */
+export const SPROUT2_WORLD: Record<Term, string[]> = {
+  1: ['teacher', 'doctor', 'farmer', 'trader', 'driver'],
+  2: ['jollof', 'egusi', 'puffpuff', 'akara', 'suya'],
+  3: ['school', 'market', 'farm', 'road', 'church'],
+}
+
+// ─── Class Config ─────────────────────────────────────────────────────────────
+
+export interface ClassConfig {
+  class: ClassLevel
+  active: boolean
+  launch_date: string | null
+}
+
 // ─── Certificate Types (Phase 2) ───────────────────────────────────────────────
 
 export type CertificateType =

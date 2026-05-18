@@ -60,6 +60,17 @@ export function useCertificates(childId: string | null) {
         return false;
       }
 
+      // Notify parent via WhatsApp (fire-and-forget)
+      fetch("/api/notifications/whatsapp/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          childId,
+          type: "milestone",
+          detail: type.replace(/_/g, " "),
+        }),
+      }).catch(() => {});
+
       // Refresh certificates
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any)

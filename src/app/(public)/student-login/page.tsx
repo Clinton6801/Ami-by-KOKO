@@ -29,7 +29,7 @@ type Step = "school_code" | "pick_name" | "enter_pin";
 function SchoolCodeStep({
   onNext,
 }: {
-  onNext: (code: string, schoolId: string, students: ChildWithClass[]) => void;
+  onNext: (code: string, schoolId: string, students: ChildWithClass[], schoolName: string, logoUrl: string | null) => void;
 }) {
   const supabase = createClient();
   const [code, setCode] = useState("");
@@ -46,7 +46,7 @@ function SchoolCodeStep({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: school, error: schoolErr } = await (supabase as any)
       .from("schools")
-      .select("id, name, school_code")
+      .select("id, name, school_code, logo_url, brand_color")
       .eq("school_code", trimmed)
       .single();
 
@@ -69,7 +69,7 @@ function SchoolCodeStep({
       return;
     }
 
-    onNext(trimmed, school.id, students as ChildWithClass[]);
+    onNext(trimmed, school.id, students as ChildWithClass[], school.name, school.logo_url ?? null);
     setLoading(false);
   }
 
@@ -309,23 +309,30 @@ export default function StudentLoginPage() {
   const [step, setStep] = useState<Step>("school_code");
   const [schoolCode, setSchoolCode] = useState("");
   const [schoolId, setSchoolId] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [students, setStudents] = useState<ChildWithClass[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<ChildWithClass | null>(null);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 flex flex-col items-center justify-start px-4 pt-8 pb-12">
 
-      {/* Header illustration */}
+      {/* Header — shows school branding after code entry, default otherwise */}
       <div className="flex flex-col items-center gap-2 mb-8">
-        <div className="relative w-32 h-32">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/ami-koko.svg"
-            alt="Àmì and Kòkò"
-            className="w-full h-full object-contain"
-          />
-        </div>
-        <h1 className="text-2xl font-extrabold text-amber-900">Àmì by Kòkò</h1>
+        {schoolLogo ? (
+          <div className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-amber-200 shadow-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={schoolLogo} alt={schoolName} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="relative w-32 h-32">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ami-koko.svg" alt="Àmì and Kòkò" className="w-full h-full object-contain" />
+          </div>
+        )}
+        <h1 className="text-2xl font-extrabold text-amber-900">
+          {schoolName || "Àmì by Kòkò"}
+        </h1>
         <p className="text-stone-500 text-sm">Student Login</p>
       </div>
 
@@ -334,10 +341,12 @@ export default function StudentLoginPage() {
         {step === "school_code" && (
           <SchoolCodeStep
             key="school_code"
-            onNext={(code, sid, studs) => {
+            onNext={(code, sid, studs, name, logo) => {
               setSchoolCode(code);
               setSchoolId(sid);
               setStudents(studs);
+              setSchoolName(name);
+              setSchoolLogo(logo);
               setStep("pick_name");
             }}
           />

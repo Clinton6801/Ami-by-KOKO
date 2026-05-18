@@ -85,11 +85,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: aErr?.message ?? "Failed to create assignment." }, { status: 500 });
   }
 
-  // Auto-assign to all students in this class
+  // Auto-assign to all students in this class + notify parents
   if (autoAssign) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: students } = await (serviceClient as any)
-      .from("children").select("id").eq("school_id", schoolId).eq("class", cls);
+      .from("children").select("id, parent_id, name").eq("school_id", schoolId).eq("class", cls);
 
     if (students && students.length > 0) {
       const rows = students.map((s: { id: string }) => ({
@@ -99,6 +99,29 @@ export async function POST(request: NextRequest) {
       }));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (serviceClient as any).from("assignment_progress").insert(rows);
+
+      // Notify parents (fire-and-forget)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ami-by-koko.vercel.app";
+      const uniqueParents = new Set<string>();
+      for (const s of students as { id: string; parent_id: string | null; name: string }[]) {
+        if (s.parent_id && !uniqueParents.has(s.parent_id)) {
+          uniqueParents.add(s.parent_id);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: profile } = await (serviceClient as any)
+            .from("profiles").select("phone_number, whatsapp_notifications").eq("id", s.parent_id).single();
+          if (profile?.phone_number && profile.whatsapp_notifications !== false) {
+            fetch(`${baseUrl}/api/notifications/whatsapp`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: profile.phone_number,
+                type: "new_assignment",
+                data: { childName: s.name, detail: title.trim(), appUrl: baseUrl },
+              }),
+            }).catch(() => {});
+          }
+        }
+      }
     }
   }
 

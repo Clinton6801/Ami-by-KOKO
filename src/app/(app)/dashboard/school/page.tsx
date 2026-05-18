@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import StudentModal from "@/components/school/StudentModal";
 import AssignmentModal from "@/components/school/AssignmentModal";
+import OnboardingTour from "@/components/ui/OnboardingTour";
 import {
   CLASS_LABELS, SUBJECT_LABELS, SUBJECT_EMOJIS,
   type ChildWithClass, type Assignment, type AssignmentProgress,
@@ -489,6 +490,7 @@ export default function SchoolDashboardPage() {
   const [adminId, setAdminId] = useState<string>("");
   const [students, setStudents] = useState<ChildWithClass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTour, setShowTour] = useState(false);
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -497,13 +499,18 @@ export default function SchoolDashboardPage() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: profile } = await (supabase as any)
-      .from("profiles").select("school_id").eq("id", user.id).single();
+      .from("profiles").select("school_id, onboarding_complete").eq("id", user.id).single();
     if (!profile?.school_id) { setLoading(false); return; }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: schoolData } = await (supabase as any)
       .from("schools").select("id, name, school_code").eq("id", profile.school_id).single();
     setSchool(schoolData as School);
+
+    // Show onboarding tour for new admins
+    if (profile.onboarding_complete === false) {
+      setShowTour(true);
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: kids } = await (supabase as any)
@@ -564,6 +571,18 @@ export default function SchoolDashboardPage() {
           {tab === "assignments" && <AssignmentsTab schoolId={school.id} adminId={adminId}/>}
           {tab === "reports"     && <ReportsTab students={students}/>}
         </motion.div>
+      </AnimatePresence>
+
+      {/* Onboarding tour for new admins */}
+      <AnimatePresence>
+        {showTour && school && (
+          <OnboardingTour
+            schoolCode={school.school_code ?? ""}
+            schoolId={school.id}
+            userId={adminId}
+            onComplete={() => setShowTour(false)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
