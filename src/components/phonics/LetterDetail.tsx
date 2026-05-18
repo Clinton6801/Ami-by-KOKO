@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -40,7 +40,7 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
   const [showCertificate, setShowCertificate] = useState<CertificateType | null>(null);
-  const milestoneShowing = { current: false };
+  const milestoneShowing = useRef(false);
 
   const song = getLetterSong(letter);
   const songLocked = !hasPaid && !isLetterFree(letter);
