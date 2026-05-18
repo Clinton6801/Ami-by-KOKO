@@ -1,6 +1,15 @@
 # Àmì by Kòkò — Codebase Summary
 
-This document describes everything built for the Àmì by Kòkò MVP — a multilingual phonics and early learning web app for African children aged 0–8.
+A multilingual phonics and early learning web app for African children aged 0–8.
+Built with Next.js 16, TypeScript, Tailwind CSS v4, Supabase, Paystack, and Vercel.
+
+---
+
+## Live App
+https://ami-by-koko.vercel.app
+
+## Repository
+https://github.com/Clinton6801/Ami-by-KOKO
 
 ---
 
@@ -15,16 +24,10 @@ This document describes everything built for the Àmì by Kòkò MVP — a multi
 | Animations | Framer Motion |
 | Audio (TTS) | Web Speech API + pre-recorded clip fallback |
 | Sound Mixing | Web Audio API (DJ Booth) |
+| Charts | Recharts (analytics dashboard) |
 | Payments | Paystack (inline popup + webhook) |
+| Notifications | WhatsApp Cloud API |
 | Deployment | Vercel (live) |
-
----
-
-## Repository & Deployment
-
-- GitHub: https://github.com/Clinton6801/Ami-by-KOKO
-- Supabase: linked and live
-- Vercel: deployed and live
 
 ---
 
@@ -41,152 +44,205 @@ This document describes everything built for the Àmì by Kòkò MVP — a multi
 src/
   app/
     page.tsx                          # Root — redirects auth users to /home, guests see landing
-    layout.tsx                        # Root layout — metadata, OG tags, Paystack script
+    layout.tsx                        # Root layout — metadata, OG tags, Paystack script, PWAManager
     globals.css                       # Tailwind v4 @theme tokens, brand colours
     (public)/
-      page.tsx                        # Landing page (full marketing page) — uses <img> not <Image fill>
+      page.tsx                        # Landing page — hero, pricing table, school CTA, TryALetter demo
       layout.tsx                      # Public layout wrapper
       auth/
-        login/page.tsx                # Email/password login + show/hide password
-        signup/page.tsx               # Signup with role selector (Parent / School), confirm password
+        login/page.tsx                # Email/password login
+        signup/page.tsx               # Signup with role selector + WhatsApp number field
         confirm/page.tsx              # Email confirmation holding page
-        reset-password/page.tsx       # Forgot password — sends Supabase reset email
-        update-password/page.tsx      # Set new password after reset link
-        callback/route.ts             # Supabase auth callback (email confirmation redirect)
+        reset-password/page.tsx       # Forgot password
+        update-password/page.tsx      # Set new password after reset
+        callback/route.ts             # Supabase auth callback
       student-login/page.tsx          # 3-step child login: school code → pick name → PIN pad
-                                      # Uses <img> not <Image fill> (React 19 JSX fix)
+                                      # Shows school logo + name after code entry (Phase 8 branding)
     (app)/
-      layout.tsx                      # Auth-protected layout — verifies session, renders AppNav + BottomNav
-      home/page.tsx                   # Story Hub — hero card, mode cards, assignments, stats, child switcher
+      layout.tsx                      # Auth-protected layout — verifies session, handles student auth
+      home/page.tsx                   # Story Hub — hero, mode cards, Song of the Day, assignments, stats
       literacy/page.tsx               # Redirects to /phonics
       phonics/
-        page.tsx                      # Language selector (English free, Yorùbá gated by subscription)
-        [language]/page.tsx           # A–Z phonics grid with OpenMoji images
-        [language]/[letter]/page.tsx  # Letter detail page
+        page.tsx                      # Language selector — Yorùbá shows "Launching soon" badge
+        [language]/page.tsx           # A–Z grid with lock overlays (G–Z locked for free users)
+        [language]/[letter]/page.tsx  # Letter detail — sound, song, image, tracing (server-side gate)
       numeracy/
-        page.tsx                      # Language selector for numbers
-        [language]/page.tsx           # Number grid
-        [language]/[number]/page.tsx  # Number detail page
+        page.tsx                      # Language selector
+        [language]/page.tsx           # Number grid with lock overlays (4–10 locked for free users)
+        [language]/[number]/page.tsx  # Server-side gate wrapper
+        [language]/[number]/_content.tsx  # Number detail — sound, counting activity, song, tracing
       world/
-        page.tsx                      # Category grid (body, animals, fruits, objects, weather)
-        [category]/page.tsx           # Items in a category
-        [category]/[item]/page.tsx    # Item detail
-      dj-booth/page.tsx               # DJ Booth — Web Audio API mixing board
-      story/page.tsx                  # Story Mode — "Kòkò Lost His Voice" arc
-      assignment/[id]/page.tsx        # Assignment activity — sequential items with audio + tracing
+        page.tsx                      # Category grid with lock overlays (body free, rest locked)
+        [category]/page.tsx           # Items grid + category song banner
+        [category]/[item]/page.tsx    # Item detail — sound, "I know this!" button, progress saved
+      dj-booth/page.tsx               # DJ Booth — pads D–H locked for free users
+      story/page.tsx                  # Story Mode — shards 4–10 locked, celebration song, certificate
+      assignment/[id]/page.tsx        # Assignment activity — sequential items, WhatsApp notify on complete
       dashboard/
-        parent/page.tsx               # Parent dashboard — progress, streak, letter grid, child switcher
-        school/page.tsx               # School admin panel — 4 tabs: Overview, Students, Assignments, Reports
-                                      # Delete now routes through /api/school/students (service role)
-      school-setup/page.tsx           # First-time school creation — calls /api/school/create (service role)
-      settings/page.tsx               # Account, child profiles, language packs, sign out
+        parent/page.tsx               # Progress, streak, letter grid, certificates gallery, milestone flow
+        school/page.tsx               # 4-tab panel: Overview, Students, Assignments, Reports
+                                      # + OnboardingTour for new admins
+        school/analytics/page.tsx     # Analytics: class stats, letter mastery chart, student table,
+                                      # weekly progress chart, assignment report (Phase 7)
+      school-setup/page.tsx           # First-time school creation (service role API)
+      settings/page.tsx               # Account + WhatsApp number, child profiles, subscription
+                                      # School admins see school plan summary, never Explorer/Family pricing
     api/
       paystack/
-        webhook/route.ts              # Paystack webhook — verifies HMAC, activates subscription in DB
+        webhook/route.ts              # Paystack webhook — handles charge.success + subscription.create
+                                      # Direct profiles query, onConflict upsert, full logging
       school/
-        create/route.ts               # POST — creates school + links profile (service role, bypasses RLS)
-        students/route.ts             # POST/PATCH/DELETE — manage school students (service role, bypasses RLS)
+        create/route.ts               # POST — creates school + links profile (service role)
+        students/route.ts             # POST/PATCH/DELETE — manage students + Supabase auth accounts
+        assignments/route.ts          # POST/PATCH — create/update assignments + notify parents
+      progress/route.ts               # POST — upsert progress (service role, works for school children)
+      sessions/route.ts               # POST/PATCH — start/end sessions (service role)
+      notifications/
+        whatsapp/route.ts             # POST — sends WhatsApp message via Cloud API (5 templates)
+                                      # GET — webhook verification
+        whatsapp/notify/route.ts      # POST — client proxy: looks up parent phone, calls main route
+
   components/
     characters/
-      Ami.tsx                         # Àmì character component (Framer Motion, emoji placeholder)
-      Koko.tsx                        # Kòkò character component (speaking/muted states)
+      Ami.tsx                         # Àmì character (Framer Motion, emoji placeholder)
+      Koko.tsx                        # Kòkò parrot — speaking/muted states
     phonics/
       LetterCard.tsx                  # Tappable letter card in A–Z grid
-      LetterDetail.tsx                # Full letter page — sound, image, correct/incorrect check, tracing
-      SoundButton.tsx                 # Kòkò sound button — plays clip or TTS
-      TracingCanvas.tsx               # Guided letter tracing with waypoint validation
+      LetterDetail.tsx                # Full letter page — sound, song button, tracing, correct/incorrect
+      SoundButton.tsx                 # Kòkò sound button
+      TracingCanvas.tsx               # Waypoint-based letter tracing canvas
     dj/
-      MixingBoard.tsx                 # DJ Booth UI — 8 pads, status bar, stop all
-      SoundPad.tsx                    # Individual pad with active glow animation
+      MixingBoard.tsx                 # DJ Booth — 8 pads, pads D–H locked for free users
+      SoundPad.tsx                    # Individual pad with glow animation
     story/
       StoryScene.tsx                  # Story scene display
       VoiceShard.tsx                  # Individual shard component
     school/
-      StudentModal.tsx                # Add/edit student modal — calls /api/school/students (no direct Supabase)
-      AssignmentModal.tsx             # Create/edit assignment modal
-    ui/
-      AppNav.tsx                      # Sticky nav — back button, home icon, sign out dropdown with confirm
-      BottomNav.tsx                   # Fixed bottom nav (different tabs for parent vs school admin)
-      Certificate.tsx                 # Canvas-rendered completion certificate (download as PNG)
-      ComingSoonOverlay.tsx           # Overlay for locked/coming-soon features
-      CreateChildModal.tsx            # Create child profile modal (avatar, name, age)
-      EditChildModal.tsx              # Edit child profile modal
-      ErrorBoundary.tsx               # React error boundary — prevents blank screens on Supabase errors
-      LanguagePicker.tsx              # Language selector component
-      OnboardingFlow.tsx              # 3-step first-login welcome flow
-      ProgressBar.tsx                 # Animated progress bar
-      StreakBadge.tsx                 # Streak display badge
+      StudentModal.tsx                # Add/edit student — uses /api/school/students, class config aware
+      AssignmentModal.tsx             # Create/edit assignment — uses /api/school/assignments
+    numeracy/
+      CountingActivity.tsx            # Tap-to-count fruit activity
     landing/
-      TryALetter.tsx                  # Interactive phonics demo on landing page (no sign-up needed)
+      TryALetter.tsx                  # Interactive phonics demo on landing (no sign-up needed)
+    ui/
+      AppNav.tsx                      # Sticky top nav — back, home, profile dropdown, sign out
+      BottomNav.tsx                   # Fixed bottom nav — parent nav + school admin nav with Analytics tab
+      Certificate.tsx                 # html2canvas certificate — download PNG + WhatsApp share
+      ComingSoonOverlay.tsx           # Coming Soon overlay for locked features
+      CreateChildModal.tsx            # Create child — uses live class_config for class selector
+      EditChildModal.tsx              # Edit child — routes school children through service-role API
+      ErrorBoundary.tsx               # React class error boundary
+      ErrorBoundaryWrapper.tsx        # Client wrapper for use in server layouts
+      LanguagePicker.tsx              # Language selector
+      OnboardingFlow.tsx              # 3-step parent first-login welcome
+      OnboardingTour.tsx              # 4-step school admin guided tour (Phase 5)
+                                      # Steps: welcome+code, logo upload, add student, create assignment
+                                      # Sets onboarding_complete = true on finish
+      ProgressBar.tsx                 # Animated progress bar
+      PWAManager.tsx                  # Service worker registration, offline queue flush, install prompt
+      SongButton.tsx                  # Plays song MP3 or TTS fallback, Kòkò dancing animation
+      StreakBadge.tsx                 # Streak display badge
+      UpgradePrompt.tsx               # Bottom sheet upgrade prompt — Explorer/Family plans
+
   hooks/
-    useChild.ts                       # Fetch/manage child profiles, selectChild, updateChild, refresh
-    useProgress.ts                    # Read/write phonics progress per child per language
-    useAudio.ts                       # Audio playback state wrapper
-    useStreak.ts                      # Calculate consecutive daily streak from sessions table
-    useSession.ts                     # Write session rows on mode entry, update ended_at on exit
+    useAccess.ts                      # Client-side paid access check (subscription + school)
     useAssignments.ts                 # Fetch active assignments for a school child's class
+    useAudio.ts                       # Audio playback state wrapper
+    useCertificates.ts                # Fetch/award certificates, WhatsApp notify on award
+    useChild.ts                       # Fetch/manage child profiles, handles student auth role
+    useClassConfig.ts                 # Reads class_config table — active vs coming soon classes
+    useProgress.ts                    # Read/write progress, milestone detection (first_steps, letter_master)
+    useSchoolAnalytics.ts             # Aggregated school analytics — per-student, letter mastery, weekly
+    useSession.ts                     # Write sessions via /api/sessions (service role)
+    useSong.ts                        # Play song MP3 or TTS fallback
+    useStreak.ts                      # Calculate daily streak, fires 7-day WhatsApp notification
+
   lib/
-    supabase/
-      client.ts                       # Browser Supabase client (with Database generic)
-      server.ts                       # Server Supabase client (cookie-based)
-      middleware.ts                   # updateSession() — refreshes auth on every request
-      database.types.ts               # Hand-authored DB types (replace with generated after linking)
+    access.ts                         # hasPaidAccess(), isLetterFree(), isNumberFree(), isCategoryFree(),
+                                      # isShardFree(), isPadFree()
+    notifications.ts                  # Server-side sendWhatsAppNotification() helper
+    offlineQueue.ts                   # queueProgress(), flushQueue() for offline progress storage
+    api/
+      errors.ts                       # friendlyError() — sanitises DB errors before sending to client
     audio/
-      speech.ts                       # Web Speech API wrapper — TTS fallback
-      clips.ts                        # LETTER_DATA map — all 26 letters with English/Yorùbá/image URLs
-      mixer.ts                        # Web Audio API mixer — loads MP3s or synthesises tones
-    paystack/
-      client.ts                       # Paystack inline popup helper + pricing constants
+      clips.ts                        # LETTER_DATA — 26 letters with English/Yorùbá words + OpenMoji URLs
+      mixer.ts                        # Web Audio API mixer for DJ Booth
+      songs.ts                        # Song data — 26 letter songs, 10 number songs, 5 world songs,
+                                      # celebration song, getSongOfTheDay()
+      speech.ts                       # Web Speech API TTS fallback
     content/
-      world.ts                        # World Knowledge items (24 items, 5 categories) + category config
+      world.ts                        # 24 world items (5 categories) + category config
+    paystack/
+      client.ts                       # PAYSTACK_PLANS, openPaystackPopup(), generateReference()
+    supabase/
+      client.ts                       # Browser Supabase client
+      server.ts                       # Server Supabase client (cookie-based)
+      middleware.ts                   # updateSession() — session refresh + route protection
+      database.types.ts               # Hand-authored DB types (all 8 tables including certificates)
+      getAccessContext.ts             # Server-side access check for Server Components
+
   middleware.ts                       # Next.js middleware — session refresh + route protection
-  types/index.ts                      # All shared TypeScript types + curriculum constants
+  types/index.ts                      # All shared types + curriculum constants (Sprout 1 + Sprout 2)
+                                      # CertificateType, CERTIFICATE_CONFIGS, ClassConfig
+
 supabase/
   migrations/
-    20240001_initial_schema.sql       # Full DB schema + RLS policies + auto-profile trigger
-    20240002_curriculum_schema.sql    # Curriculum additions: school_code, class/term/pin on children,
-                                      # subject/class/term on progress, assignments + assignment_progress tables
-  config.toml                         # Local Supabase config
+    20240001_initial_schema.sql       # Full DB schema + RLS + auto-profile trigger
+    20240002_curriculum_schema.sql    # school_code, class/term/pin on children, assignments tables
+    20240003_student_auth.sql         # auth_user_id on children, student RLS policies
+  config.toml
+
 public/
-  ami-koko.svg                        # Hand-crafted SVG illustration of Àmì + Kòkò
-  favicon.svg                         # SVG favicon (amber circle + parrot emoji)
+  ami-koko.svg                        # Àmì + Kòkò illustration
+  favicon.svg
   manifest.json                       # PWA manifest
-  robots.txt                          # SEO robots file
+  robots.txt
+  offline.html                        # Offline fallback page with Kòkò and retry button
+  sw.js                               # Service worker — caches pages, audio (cache-first), assets
   audio/
-    english/README.md                 # Instructions for adding A–Z MP3 clips
+    english/README.md                 # Instructions for A–Z MP3 clips
     yoruba/README.md                  # Instructions for Yorùbá clips
+    songs/
+      letters/README.md               # 26 letter song MP3 slots (a-song.mp3 … z-song.mp3)
+      numbers/README.md               # 10 number song MP3 slots
+      world/README.md                 # 5 category songs + koko-restored.mp3
+
 .kiro/
-  specs/ami-koko-mvp.md               # Full MVP spec
+  specs/
+    ami-koko-mvp.md
+    MASTER_ROADMAP_SPEC.md
+    PAYMENT_GATING_UPDATE.md
+    STUDENT_AUTH_UPDATE.md
   steering/
-    product-identity.md               # Characters, brand voice, cultural rules
-    tech-stack.md                     # Stack conventions, naming rules
-    mvp-scope.md                      # What's in/out of MVP, definition of done
+    product-identity.md
+    tech-stack.md
+    mvp-scope.md
 ```
 
 ---
 
-## Database Schema (Supabase)
+## Database Schema
 
 ### Tables
 
 | Table | Purpose |
 |---|---|
-| `profiles` | Extends auth.users — role (parent/school_admin), full_name, school_id |
-| `schools` | School accounts — name, logo, subscription status, school_code |
-| `children` | Child profiles under a parent or school — includes class, term, student_pin |
-| `progress` | Per-child, per-language, per-letter progress (heard_count, traced_count, mastered, subject, class, term) |
-| `sessions` | Mode sessions with start/end timestamps for streak calculation |
-| `subscriptions` | Paystack subscription records — plan, reference, active, expires_at |
+| `profiles` | Extends auth.users — role, full_name, school_id, phone_number, whatsapp_notifications, onboarding_complete |
+| `schools` | School accounts — name, logo_url, subscription_active, school_code, brand_color |
+| `children` | Child profiles — parent_id or school_id, class, term, student_pin, auth_user_id |
+| `progress` | Per-child progress — letter, subject, heard_count, traced_count, mastered, class, term |
+| `sessions` | Mode sessions with start/end timestamps |
+| `subscriptions` | Paystack subscription records |
 | `assignments` | School assignments — class, subject, term, activity_type, content_keys, due_date |
-| `assignment_progress` | Per-child assignment completion tracking |
+| `assignment_progress` | Per-child assignment completion |
+| `certificates` | Earned certificates — child_id, type, earned_at (unique per child per type) |
+| `class_config` | Which classes are active (sprout_1 = true, others = false) |
 
 ### Key behaviours
 - `handle_new_user()` trigger auto-creates a `profiles` row on every new auth signup
-- `generate_school_code()` trigger auto-generates a unique `AMIK-XXXX` code on school creation
-- All tables have Row Level Security enabled
-- Parents can only see their own children and progress
-- School admins can see all children in their school
-- **School creation and student management bypass RLS via service-role API routes** (see below)
+- `generate_school_code()` trigger auto-generates `AMIK-XXXX` on school creation
+- All tables have RLS enabled
+- Student auth: synthetic email `{child_id}@students.amibykoko.com`, password `{school_id}-{pin}`
 
 ---
 
@@ -194,172 +250,137 @@ public/
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/api/paystack/webhook` | POST | Verifies Paystack HMAC-SHA512, activates subscription on `charge.success` |
-| `/api/school/create` | POST | Creates school + links admin profile — uses service role to bypass RLS chicken-and-egg |
-| `/api/school/students` | POST | Creates a school student — service role bypasses `children` RLS |
-| `/api/school/students` | PATCH | Updates a school student — service role |
-| `/api/school/students` | DELETE | Deletes a school student — service role |
-
-All service-role routes verify the caller's session and school_admin role before acting.
+| `/api/paystack/webhook` | POST | Handles charge.success + subscription.create, direct profiles query, full logging |
+| `/api/school/create` | POST | Creates school + links admin profile (service role) |
+| `/api/school/students` | POST/PATCH/DELETE | Manage students + Supabase auth accounts (service role) |
+| `/api/school/assignments` | POST/PATCH | Create/update assignments + notify parents via WhatsApp |
+| `/api/progress` | POST | Upsert progress (service role — works for school children) |
+| `/api/sessions` | POST/PATCH | Start/end sessions (service role) |
+| `/api/notifications/whatsapp` | POST | Send WhatsApp message via Cloud API |
+| `/api/notifications/whatsapp` | GET | Webhook verification |
+| `/api/notifications/whatsapp/notify` | POST | Client proxy — looks up parent phone, sends notification |
 
 ---
 
 ## Features Built
 
-### Authentication
-- Email/password signup with role selector (Parent or School Admin)
-- Password confirmation field with live match indicator
-- Show/hide password toggle on all password fields
-- Email confirmation flow with `/auth/callback` handler
-- Forgot password → reset email → update password flow
-- Sign out with confirmation step in nav dropdown
+### Phase 1 — Songs ✅
+- `src/lib/audio/songs.ts` — 26 letter songs (African word associations), 10 number songs, 5 world category songs, celebration song, `getSongOfTheDay()`
+- `useSong` hook — plays MP3 if available, falls back to Web Speech API TTS
+- `SongButton` component — Kòkò dancing animation, stop/play toggle, locked state
+- Letter detail: "🎵 Sing with Kòkò" button (A–F free, G–Z locked)
+- Number detail: "🎵 Count with Kòkò" button (1–3 free, 4–10 locked)
+- World category page: "🎵 Sing the [Category] song" banner (Body Parts free, rest locked)
+- Story page: celebration song plays when all 10 shards collected (always free)
+- Home page: "🎵 Song of the Day" card — rotates daily through A–Z, always free
 
-### Landing Page (`/`)
-- Full marketing page: hero with animated Àmì + Kòkò SVG, floating speech bubble
-- Scrolling marquee strip
-- Interactive "Try a Letter" demo — tap any of 10 letters, hear Kòkò speak (Web Speech API), see word associations. No sign-up required.
-- Feature cards, "How it works" steps, testimonials, school CTA, final CTA
-- Authenticated users are redirected to `/home` automatically
-- Uses plain `<img>` tags (not Next.js `<Image fill>`) for React 19 compatibility
+### Phase 2 — Progress Certificates ✅
+- `useCertificates` hook — fetch/award certificates, WhatsApp notify on award
+- `Certificate.tsx` — html2canvas PNG download + WhatsApp share
+- 7 certificate types: first_steps, letter_master, number_star, world_explorer, story_hero, assignment_champion, weekly_streak
+- `useProgress` detects first_steps (A–F mastered) and letter_master (all 26) milestones
+- Parent dashboard: "🏆 My Certificates" gallery with view/download per cert
+- Story page: awards story_hero certificate on completion
+- `CERTIFICATE_CONFIGS` in types for consistent copy across all cert triggers
 
-### Student Login (`/student-login`)
-- 3-step flow: school code → pick name from grid → 4-digit PIN pad
-- No keyboard required — all tap targets ≥ 64×64px
-- Session stored in localStorage (no Supabase Auth for students)
-- Uses plain `<img>` tags for React 19 compatibility
+### Phase 3 — WhatsApp Notifications ✅
+- `/api/notifications/whatsapp` — 5 message templates (assignment_complete, new_assignment, milestone, streak, generic)
+- `/api/notifications/whatsapp/notify` — client-callable proxy
+- Phone number field on signup page and settings Account section
+- Notifications wired into: assignment completion, certificate award, 7-day streak, new assignment creation
+- Silently skips if no phone number saved or notifications disabled
 
-### Home Screen (`/home`)
-- Hero card with Àmì illustration, personalised greeting with child's name
-- Child switcher dropdown (appears when 2+ children exist)
-- School context badge (class + term) for school children
-- Five mode cards: Literacy, Numbers, My World, DJ Booth, Story Mode
-- Assignment list for school children (active assignments with start/done state)
-- Live stats: letters mastered, day streak, story shards found
-- Inline "Add a child" banner when no child profile exists
-- First-login onboarding flow (3 steps, shown once)
-- School admin sees a different view with quick-action cards
+### Phase 4 — PWA / Offline ✅
+- `public/sw.js` — service worker: pages (network-first), audio (cache-first), assets
+- `public/offline.html` — friendly offline page with Kòkò and retry button
+- `src/lib/offlineQueue.ts` — `queueProgress()` / `flushQueue()` for offline progress
+- `PWAManager.tsx` — SW registration (production only), syncing indicator, install prompt after 3rd session
 
-### Phonics Mode (`/phonics`)
-- Language selector — English (free), Yorùbá (subscription-gated via Paystack check)
-- A–Z grid with OpenMoji illustrations, uppercase + lowercase on each card, mastered ⭐ indicator
-- Letter detail page:
-  - Large Aa display with object illustration
-  - Kòkò sound button — plays pre-recorded clip or falls back to Web Speech API
-  - "Did you get it right?" — ✅ Got it / ❌ Not yet buttons
-  - Correct → saves to DB as mastered, auto-navigates to next letter after 1.2s
-  - Guided tracing canvas — waypoint-based validation, progress bar, 75% threshold to complete
-  - Prev / All / Next letter navigation
+### Phase 5 — School Admin Onboarding Tour ✅
+- `OnboardingTour.tsx` — 4-step guided tour for new school admins
+- Steps: welcome + school code display, logo upload to Supabase Storage, add student guide, create assignment guide
+- Shown when `profiles.onboarding_complete = false` AND role = school_admin
+- Sets `onboarding_complete = true` on completion
 
-### Numeracy Mode (`/numeracy`)
-- Language selector (English only for MVP)
-- Number grid and detail pages
+### Phase 6 — Sprout 2 Curriculum ✅
+- Sprout 2 content in `types/index.ts`: literacy (blending + digraphs), numeracy (1–20, addition, shapes), world (community helpers, Nigerian foods, environment)
+- `useClassConfig` hook reads `class_config` table — active classes accessible, inactive show Coming Soon
+- `CreateChildModal` and `StudentModal` use live class config (not hardcoded)
+- Sprout 1 content unchanged
 
-### My World (`/world`)
-- 5 category grid: Body Parts, Animals, Fruits, Objects, Weather
-- 24 items total with English + Yorùbá names and OpenMoji illustrations
-- Category and item detail pages
+### Phase 7 — Analytics Dashboard ✅
+- `/dashboard/school/analytics` — class overview stats, letter mastery bar chart (recharts), weekly progress line chart, sortable student table, assignment completion report
+- `useSchoolAnalytics` hook — full aggregation: per-student stats, letter mastery %, weekly progress
+- Analytics tab added to school admin bottom navigation
 
-### DJ Booth (`/dj-booth`)
-- 8 letter pads (A–H) with coloured gradients
-- Web Audio API: loads MP3 clips if available, synthesises pentatonic tones if not
-- Pads loop when active, glow with animation
-- Status bar shows how many sounds are playing
-- Stop All button
-- Session tracking (writes to `sessions` table)
+### Phase 8 — School Branding ✅
+- Student login fetches `logo_url` and `brand_color` after school code entry
+- School logo displayed in header; school name shown instead of "Àmì by Kòkò"
+- `OnboardingTour` step 2 uploads logo to Supabase Storage `school-logos` bucket
 
-### Story Mode (`/story`)
-- "Kòkò Lost His Voice" arc — 10 letters (A–J) = 10 shards
-- Narrative scenes that change as shards are collected (6 milestone scenes)
-- Animated Kòkò emoji reacts to progress (😢 → 😮 → 😊 → 😄 → 🥳 → 🎉)
-- Progress bar, shard grid, milestone badges
-- Certificate component available for completion
+### Phase 9 — Yorùbá Coming Soon ✅
+- Yorùbá option on phonics language selector shows "Launching soon — recordings in progress" badge
+- Audio directory structure ready at `public/audio/yoruba/`
 
-### Assignment Activity (`/assignment/[id]`)
-- Sequential item-by-item flow (literacy, numeracy, or world)
-- Each item: Kòkò auto-speaks on load, tap to hear again, then trace
-- Progress saved to `progress` table after each item
-- Assignment marked complete in `assignment_progress` after all items done
-- Celebration screen on completion
+### Credit 7 — Settings + Webhook Fixes ✅
+- Settings: school admins see school plan summary (name, active status, pupil count, features, WhatsApp upgrade link) — never see Explorer/Family pricing
+- Paystack webhook: `console.log` at every step, direct profiles query, `onConflict: 'profile_id'`, handles both `charge.success` and `subscription.create`, returns 500 on DB failure
 
-### Parent Dashboard (`/dashboard/parent`)
-- Child switcher with Edit button
-- Stats: mastered count, day streak, progress %
-- Full A–Z letter grid coloured by status (mastered / in progress / not started)
-- Subscription section with upgrade link
-- Skeleton loading placeholders
+---
 
-### School Admin Panel (`/dashboard/school`)
-- 4-tab layout: Overview, Students, Assignments, Reports
-- **Overview**: school code display, student count, CSV export
-- **Students**: add/edit/delete students (via service-role API), CSV import, grouped by class
-- **Assignments**: create/edit assignments, active vs past, per-student completion tracking
-- **Reports**: per-student progress bars (mastered letters out of 26)
+## Payment Gating
 
-### School Setup (`/school-setup`)
-- First-time school creation for school admins
-- Calls `/api/school/create` (service role) — bypasses RLS chicken-and-egg
-- Auto-generates `AMIK-XXXX` school code via DB trigger
+| Feature | Free | Paid (Explorer+) |
+|---|---|---|
+| Letters | A–F | G–Z |
+| Numbers | 1–3 | 4–10 |
+| World | Body Parts | Animals, Fruits, Objects, Weather |
+| Story shards | 1–3 | 4–10 |
+| DJ pads | A–C | D–H |
+| Languages | English | Yorùbá (coming soon) |
+| Songs | A–F letters, 1–3 numbers, Body Parts, Song of the Day | G–Z letters, 4–10 numbers, other categories |
 
-### Settings (`/settings`)
-- Account section — email display, sign out button
-- Child profiles — list with active indicator, tap to switch, Edit button, Add child button
-- Language packs — English (free ✓), Yorùbá (Unlock via Paystack), Igbo/Hausa (coming soon)
-- App version info
+School children with `schools.subscription_active = true` bypass all gating.
 
-### Payments (Paystack)
-- Inline popup for Yorùbá unlock (₦1,500/month)
-- `/api/paystack/webhook` — verifies HMAC-SHA512 signature, activates subscription in DB on `charge.success`
-- Paystack inline script loaded in root layout
+---
+
+## RLS Architecture
+
+All privileged writes (school children, sessions, progress for school children) go through Next.js API routes using the service role key. The browser client (anon key) is used for reads and parent-owned writes only.
+
+**Service-role routes:** `/api/school/create`, `/api/school/students`, `/api/school/assignments`, `/api/progress`, `/api/sessions`
 
 ---
 
 ## Audio Strategy
 
 1. **Primary**: pre-recorded native speaker clips at `/public/audio/[language]/[letter].mp3`
-2. **Fallback**: Web Speech API (TTS) — always works, sounds robotic
-3. **DJ Booth**: Web Audio API synthesised tones when no MP3s exist
+2. **Songs**: pre-recorded at `/public/audio/songs/[type]/[key]-song.mp3`
+3. **Fallback**: Web Speech API TTS — always works
+4. **DJ Booth**: Web Audio API synthesised tones when no MP3s exist
 
 **Audio clips needed** (not yet recorded):
 - `/public/audio/english/a.mp3` through `z.mp3` — 26 files
+- `/public/audio/songs/letters/a-song.mp3` through `z-song.mp3` — 26 files
+- `/public/audio/songs/numbers/1-song.mp3` through `10-song.mp3` — 10 files
+- `/public/audio/songs/world/[category]-song.mp3` — 5 files + `koko-restored.mp3`
 - `/public/audio/yoruba/` — Yorùbá clips (after language launches)
 
 ---
 
-## Bugs Fixed (in this session)
+## Supabase Migrations Run
 
-| Bug | Fix |
+| Migration | Contents |
 |---|---|
-| Vercel build error: `JSX element class does not support attributes` on `<Image fill>` | Replaced all `<Image fill>` with plain `<img>` tags in `(public)/page.tsx` and `student-login/page.tsx`. Removed unused `Image` imports from those files and `home/page.tsx`. Root cause: React 19 + `@types/react` v19 tightened JSX type checking. |
-| `new row violates row-level security policy for table "schools"` on school setup | Created `/api/school/create` route using service role key. School setup page now calls this API instead of inserting directly. Bypasses RLS chicken-and-egg (admin has no `school_id` yet when creating the school). |
-| `new row violates row-level security policy for table "children"` when adding school students | Created `/api/school/students` route (POST/PATCH/DELETE) using service role key. `StudentModal` and school dashboard delete now call this API. Bypasses RLS (school children have `school_id` not `parent_id`, so the parent policy blocked inserts). |
+| `20240001_initial_schema.sql` | Full schema: profiles, schools, children, progress, sessions, subscriptions + RLS + auto-profile trigger |
+| `20240002_curriculum_schema.sql` | school_code, class/term/pin on children, subject/class/term on progress, assignments, assignment_progress |
+| `20240003_student_auth.sql` | auth_user_id on children, student RLS policies |
 
----
-
-## RLS Architecture Notes
-
-The `children` and `schools` tables have RLS policies scoped to ownership:
-- `children`: `parent_id = auth.uid()` for parents; school admins can SELECT but not INSERT via browser client
-- `schools`: school admins can SELECT/UPDATE their own school, but INSERT requires no existing `school_id`
-
-**Pattern for privileged writes**: use a Next.js API route with `SUPABASE_SERVICE_ROLE_KEY`. Always verify the user's session and role server-side before acting. Never expose the service role key to the client.
-
----
-
-## What Still Needs Work
-
-### Before going live
-1. **Audio clips** — record/generate A–Z English clips (ElevenLabs free tier works)
-2. **Supabase SMTP** — configure Resend or SendGrid for email delivery
-3. **Paystack webhook URL** — set in Paystack dashboard (deployed URL + `/api/paystack/webhook`)
-4. **Paystack pricing** — confirm live values in `src/lib/paystack/client.ts`
-
-### Known gaps
-- Yorùbá phonics content — letter set and word associations need native speaker review
-- Numeracy and World detail pages exist but content depth can be expanded
-- No error boundaries on all pages — `ErrorBoundary` component exists but only wraps app layout
-- Child profile editing in Settings — `EditChildModal` is wired but needs verification
-- CSV import in school dashboard uses browser client directly (may hit RLS on progress writes)
-- `database.types.ts` is hand-authored — regenerate with `npx supabase gen types typescript --local` after any schema changes
+**Migrations to run manually in Supabase SQL Editor** (from MASTER_ROADMAP_SPEC.md):
+- Migration 003 (certificates table) — already in DB per codebase
+- Migration 004 (phone_number, whatsapp_notifications, onboarding_complete on profiles) — already run
+- Migration 005 (brand_color on schools) — already run
+- Migration 006 (class_config table) — already run
 
 ---
 
@@ -372,15 +393,39 @@ SUPABASE_SERVICE_ROLE_KEY
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
 PAYSTACK_SECRET_KEY
 NEXT_PUBLIC_APP_URL
+WHATSAPP_PHONE_NUMBER_ID        # Phase 3 — WhatsApp Cloud API
+WHATSAPP_ACCESS_TOKEN           # Phase 3
+WHATSAPP_WEBHOOK_VERIFY_TOKEN   # Phase 3
 ```
+
+---
+
+## What Still Needs Work
+
+### Before going live
+1. **Audio clips** — record/generate A–Z English clips + all song clips
+2. **Paystack webhook URL** — set in Paystack dashboard: `https://ami-by-koko.vercel.app/api/paystack/webhook`
+3. **WhatsApp Cloud API** — create Meta for Developers account, get phone number ID + access token
+4. **Supabase SMTP** — configure Resend or SendGrid for email delivery
+
+### Remaining roadmap phases (not yet built)
+- Phase 10 — Live Class Mode (Supabase Realtime)
+- Phase 11 — Leaderboard + Class Challenges
+- Phase 12 — Mobile App (Capacitor)
+
+### Known gaps
+- Yorùbá phonics content — letter set and word associations need native speaker review
+- `database.types.ts` is hand-authored — regenerate with `npx supabase gen types typescript --project-id cghbfovahfajmcpcrzeu`
+- CSV import in school dashboard still uses browser client for some operations
+- No error boundaries on individual pages (only at layout level)
 
 ---
 
 ## Brand
 
-- **Primary colour**: amber (#F59E0B) — Kòkò's energy
-- **Secondary**: forest green (#166534) — Àmì's world
-- **Accent**: coral/rose (#F43F5E) — celebration
-- **Background**: soft cream (#FEFCE8)
+- **Primary**: amber `#F59E0B` — Kòkò's energy
+- **Secondary**: forest green `#166534` — Àmì's world
+- **Accent**: coral/rose `#F43F5E` — celebration
+- **Background**: soft cream `#FEFCE8`
 - All interactive elements: minimum 48×48px tap targets
 - Touch-first design — primary device is mobile
