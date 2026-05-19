@@ -3,8 +3,8 @@
 /**
  * useCertificates — fetches and awards certificates for a child.
  *
- * Certificates are awarded when milestones are reached (e.g., completing A-F, A-Z, etc.).
- * Each certificate type can only be earned once per child.
+ * Reads use the browser Supabase client.
+ * Writes go through /api/certificates/award (service role) to bypass RLS.
  */
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -15,52 +15,66 @@ export function useCertificates(childId: string | null) {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     if (!childId) return;
-    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("certificates")
+      .select("*")
+      .eq("child_id", childId)
+      .order("earned_at", { ascending: false });
 
-    async function fetch() {
-      setLoading(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
-        .from("certificates")
-        .select("*")
-        .eq("child_id", childId)
-        .order("earned_at", { ascending: false });
-      if (!cancelled) {
-        setCertificates((data as Certificate[]) ?? []);
-        setLoading(false);
-      }
-    }
-    fetch();
-    return () => { cancelled = true; };
+    console.log("[useCertificates] fetched:", data?.length ?? 0, "error:", error);
+    setCertificates((data as Certificate[]) ?? []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childId]);
 
+  useEffect(() => {
+    if (!childId) return;
+    setLoading(true);
+    refresh().finally(() => setLoading(false));
+  }, [childId, refresh]);
+
   /**
-   * Award a certificate to a child if they haven't already earned it.
-   * Returns true if the certificate was newly awarded, false if already earned.
+   * Award a certificate via service-role API route.
+   * Returns true if newly awarded, false if already earned or error.
    */
   const awardCertificate = useCallback(
     async (type: CertificateType): Promise<boolean> => {
       if (!childId) return false;
 
-      // Check if already earned
-      const alreadyEarned = certificates.some(c => c.type === type);
-      if (alreadyEarned) return false;
-
-      // Insert new certificate
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("certificates")
-        .insert({ child_id: childId, type });
-
-      if (error) {
-        console.error("Failed to award certificate:", error);
+      // Optimistic check — skip if already in local state
+      if (certificates.some(c => c.type === type)) {
+        console.log("[useCertificates] already earned locally:", type);
         return false;
       }
 
-      // Notify parent via WhatsApp (fire-and-forget)
+      console.log("[useCertificates] calling /api/certificates/award for:", type);
+
+      const res = await fetch("/api/certificates/award", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId, type }),
+      });
+
+      const json = await res.json();
+      console.log("[useCertificates] award response:", json);
+
+      if (!res.ok) {
+        console.error("[useCertificates] award failed:", json.error);
+        return false;
+      }
+
+      if (!json.awarded) {
+        // Already earned in DB — refresh local state
+        await refresh();
+        return false;
+      }
+
+      // Newly awarded — refresh and notify parent
+      await refresh();
+
+      // WhatsApp notification (fire-and-forget)
       fetch("/api/notifications/whatsapp/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,29 +85,15 @@ export function useCertificates(childId: string | null) {
         }),
       }).catch(() => {});
 
-      // Refresh certificates
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any)
-        .from("certificates")
-        .select("*")
-        .eq("child_id", childId)
-        .order("earned_at", { ascending: false });
-      setCertificates((data as Certificate[]) ?? []);
-
       return true;
     },
-    [childId, certificates, supabase]
+    [childId, certificates, refresh]
   );
 
-  /**
-   * Check if a specific certificate type has been earned.
-   */
   const hasCertificate = useCallback(
-    (type: CertificateType): boolean => {
-      return certificates.some(c => c.type === type);
-    },
+    (type: CertificateType): boolean => certificates.some(c => c.type === type),
     [certificates]
   );
 
-  return { certificates, loading, awardCertificate, hasCertificate };
+  return { certificates, loading, awardCertificate, hasCertificate, refresh };
 }

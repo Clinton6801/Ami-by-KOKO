@@ -44,7 +44,7 @@ export default function Certificate({ childName, achievement, subject = "English
 
   function shareWhatsApp() {
     const text = encodeURIComponent(
-      `🎉 ${childName} has ${achievement} with Àmì by Kòkò! 🦜\n\nTry it free at amibykoko.com`
+      `🦜 ${childName} just earned the '${subject ?? "Achievement"}' certificate on Àmì by Kòkò! 🎉\n\nTry it free at ami-by-koko.vercel.app`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
   }

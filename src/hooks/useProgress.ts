@@ -14,8 +14,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { LetterProgress, Language, CertificateType } from "@/types";
 
-const FREE_LETTERS = ["a","b","c","d","e","f"];
-const ALL_LETTERS  = "abcdefghijklmnopqrstuvwxyz".split("");
+const FREE_LETTERS = ["A","B","C","D","E","F"];
+const ALL_LETTERS  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export function useProgress(childId: string | null, language: Language) {
   const supabase = createClient();
@@ -140,9 +140,10 @@ export function useProgress(childId: string | null, language: Language) {
 
       // Milestone check — literacy only
       if (patch.mastered && subject === "literacy") {
+        // Letters are stored UPPERCASE in the DB (A, B, C...)
         const masteredNow = updatedLiteracy
           .filter(p => p.mastered)
-          .map(p => p.letter.toLowerCase());
+          .map(p => p.letter.toUpperCase());
 
         console.log("[useProgress] milestone check — mastered literacy:", masteredNow.length, masteredNow);
 
@@ -157,7 +158,7 @@ export function useProgress(childId: string | null, language: Language) {
 
         if (
           !firedMilestones.current.has("letter_master") &&
-          ALL_LETTERS.every(l => masteredNow.includes(l))
+          (masteredNow.length >= 26 || ALL_LETTERS.every(l => masteredNow.includes(l)))
         ) {
           console.log("[useProgress] 🎉 letter_master milestone!");
           firedMilestones.current.add("letter_master");
