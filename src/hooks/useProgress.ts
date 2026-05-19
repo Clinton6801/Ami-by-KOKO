@@ -3,12 +3,12 @@
 /**
  * useProgress — reads and writes progress per child per language.
  *
- * IMPORTANT: fetches ALL subjects for the child so callers can filter.
- * masteredCount and masteredLetters are filtered to subject='literacy' only
- * to avoid numeracy/world rows inflating the phonics count.
+ * Makes THREE separate DB queries — one per subject — so there is
+ * zero chance of cross-subject contamination in the counts.
  *
- * Writes go through /api/progress (service role) so school children
- * (parent_id = null) are not blocked by the parent-scoped RLS policy.
+ * masteredCount / masteredLetters = literacy only (for phonics dashboard)
+ * masteredNumbers                 = numeracy only
+ * masteredWorldItems              = world only
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -19,8 +19,13 @@ const ALL_LETTERS  = "abcdefghijklmnopqrstuvwxyz".split("");
 
 export function useProgress(childId: string | null, language: Language) {
   const supabase = createClient();
-  const [progress, setProgress] = useState<LetterProgress[]>([]);
+
+  // Three separate state buckets — one per subject
+  const [literacyProgress,  setLiteracyProgress]  = useState<LetterProgress[]>([]);
+  const [numeracyProgress,  setNumeracyProgress]  = useState<LetterProgress[]>([]);
+  const [worldProgress,     setWorldProgress]     = useState<LetterProgress[]>([]);
   const [loading, setLoading] = useState(false);
+
   const [newMilestone, setNewMilestone] = useState<CertificateType | null>(null);
   const firedMilestones = useRef<Set<CertificateType>>(new Set());
 
@@ -28,27 +33,57 @@ export function useProgress(childId: string | null, language: Language) {
     if (!childId) return;
     let cancelled = false;
 
-    async function fetchProgress() {
+    async function fetchAll() {
       setLoading(true);
-      // Fetch ALL subjects — callers filter as needed
+
+      // ── Literacy ──────────────────────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data: lit, error: litErr } = await (supabase as any)
         .from("progress")
         .select("*")
         .eq("child_id", childId)
-        .eq("language", language);
+        .eq("language", language)
+        .eq("subject", "literacy");
 
-      console.log("[useProgress] fetched rows:", data?.length, "error:", error, "childId:", childId, "language:", language);
+      console.log("[useProgress] literacy rows:", lit?.length ?? 0, litErr ?? "ok",
+        "mastered:", lit?.filter((r: LetterProgress) => r.mastered).map((r: LetterProgress) => r.letter));
+
+      // ── Numeracy ──────────────────────────────────────────────────────────
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: num, error: numErr } = await (supabase as any)
+        .from("progress")
+        .select("*")
+        .eq("child_id", childId)
+        .eq("language", language)
+        .eq("subject", "numeracy");
+
+      console.log("[useProgress] numeracy rows:", num?.length ?? 0, numErr ?? "ok");
+
+      // ── World ─────────────────────────────────────────────────────────────
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: wld, error: wldErr } = await (supabase as any)
+        .from("progress")
+        .select("*")
+        .eq("child_id", childId)
+        .eq("language", language)
+        .eq("subject", "world");
+
+      console.log("[useProgress] world rows:", wld?.length ?? 0, wldErr ?? "ok");
 
       if (!cancelled) {
-        setProgress((data as LetterProgress[]) ?? []);
+        setLiteracyProgress((lit as LetterProgress[]) ?? []);
+        setNumeracyProgress((num as LetterProgress[]) ?? []);
+        setWorldProgress((wld as LetterProgress[]) ?? []);
         setLoading(false);
       }
     }
-    fetchProgress();
+
+    fetchAll();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childId, language]);
+
+  // ── Write ─────────────────────────────────────────────────────────────────
 
   const upsertProgress = useCallback(
     async (
@@ -58,34 +93,45 @@ export function useProgress(childId: string | null, language: Language) {
     ) => {
       if (!childId) return;
 
-      let updatedProgress: LetterProgress[] = [];
-      setProgress(prev => {
-        const existing = prev.find(p => p.letter === letter && (p as LetterProgress & { subject?: string }).subject === subject);
-        const next = existing
-          ? prev.map(p =>
-              p.id === existing.id
-                ? { ...p, ...patch, last_activity: new Date().toISOString() }
-                : p
-            )
-          : [
-              ...prev,
-              {
-                id: `temp-${subject}-${letter}`,
-                child_id: childId,
-                language,
-                letter,
-                heard_count: 0,
-                traced_count: 0,
-                mastered: false,
-                last_activity: new Date().toISOString(),
-                subject,
-                ...patch,
-              } as LetterProgress,
-            ];
-        updatedProgress = next;
-        return next;
-      });
+      // Optimistic update to the correct bucket
+      const updateBucket = (prev: LetterProgress[]): LetterProgress[] => {
+        const existing = prev.find(p => p.letter === letter);
+        if (existing) {
+          return prev.map(p =>
+            p.id === existing.id
+              ? { ...p, ...patch, last_activity: new Date().toISOString() }
+              : p
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: `temp-${subject}-${letter}-${Date.now()}`,
+            child_id: childId,
+            language,
+            letter,
+            heard_count: 0,
+            traced_count: 0,
+            mastered: false,
+            last_activity: new Date().toISOString(),
+            ...patch,
+          } as LetterProgress,
+        ];
+      };
 
+      let updatedLiteracy = literacyProgress;
+
+      if (subject === "literacy") {
+        const next = updateBucket(literacyProgress);
+        updatedLiteracy = next;
+        setLiteracyProgress(next);
+      } else if (subject === "numeracy") {
+        setNumeracyProgress(prev => updateBucket(prev));
+      } else if (subject === "world") {
+        setWorldProgress(prev => updateBucket(prev));
+      }
+
+      // Persist
       await fetch("/api/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,17 +140,17 @@ export function useProgress(childId: string | null, language: Language) {
 
       // Milestone check — literacy only
       if (patch.mastered && subject === "literacy") {
-        const masteredNow = updatedProgress
-          .filter(p => p.mastered && (p as LetterProgress & { subject?: string }).subject === "literacy")
+        const masteredNow = updatedLiteracy
+          .filter(p => p.mastered)
           .map(p => p.letter.toLowerCase());
 
-        console.log("[useProgress] milestone check — mastered literacy letters:", masteredNow);
+        console.log("[useProgress] milestone check — mastered literacy:", masteredNow.length, masteredNow);
 
         if (
           !firedMilestones.current.has("first_steps") &&
           FREE_LETTERS.every(l => masteredNow.includes(l))
         ) {
-          console.log("[useProgress] 🎉 first_steps milestone reached!");
+          console.log("[useProgress] 🎉 first_steps milestone!");
           firedMilestones.current.add("first_steps");
           setNewMilestone("first_steps");
         }
@@ -113,55 +159,66 @@ export function useProgress(childId: string | null, language: Language) {
           !firedMilestones.current.has("letter_master") &&
           ALL_LETTERS.every(l => masteredNow.includes(l))
         ) {
-          console.log("[useProgress] 🎉 letter_master milestone reached!");
+          console.log("[useProgress] 🎉 letter_master milestone!");
           firedMilestones.current.add("letter_master");
           setNewMilestone("letter_master");
         }
       }
     },
-    [childId, language]
+    [childId, language, literacyProgress]
   );
 
+  // ── Convenience writers ───────────────────────────────────────────────────
+
   const recordHeard = useCallback((letter: string, subject = "literacy") => {
-    const existing = progress.find(p => p.letter === letter && (p as LetterProgress & { subject?: string }).subject === subject);
+    const bucket = subject === "numeracy" ? numeracyProgress
+                 : subject === "world"    ? worldProgress
+                 : literacyProgress;
+    const existing = bucket.find(p => p.letter === letter);
     return upsertProgress(letter, { heard_count: (existing?.heard_count ?? 0) + 1 }, subject);
-  }, [progress, upsertProgress]);
+  }, [literacyProgress, numeracyProgress, worldProgress, upsertProgress]);
 
   const recordCorrect = useCallback((letter: string, subject = "literacy") => {
-    const existing = progress.find(p => p.letter === letter && (p as LetterProgress & { subject?: string }).subject === subject);
+    const bucket = subject === "numeracy" ? numeracyProgress
+                 : subject === "world"    ? worldProgress
+                 : literacyProgress;
+    const existing = bucket.find(p => p.letter === letter);
     return upsertProgress(letter, { heard_count: (existing?.heard_count ?? 0) + 1, mastered: true }, subject);
-  }, [progress, upsertProgress]);
+  }, [literacyProgress, numeracyProgress, worldProgress, upsertProgress]);
 
   const recordTraced = useCallback((letter: string, subject = "literacy") => {
-    const existing = progress.find(p => p.letter === letter && (p as LetterProgress & { subject?: string }).subject === subject);
+    const bucket = subject === "numeracy" ? numeracyProgress
+                 : subject === "world"    ? worldProgress
+                 : literacyProgress;
+    const existing = bucket.find(p => p.letter === letter);
     const newCount = (existing?.traced_count ?? 0) + 1;
     return upsertProgress(letter, { traced_count: newCount, mastered: newCount >= 3 }, subject);
-  }, [progress, upsertProgress]);
+  }, [literacyProgress, numeracyProgress, worldProgress, upsertProgress]);
 
-  // ── Filtered views ────────────────────────────────────────────────────────
+  // ── Derived values ────────────────────────────────────────────────────────
 
-  // Literacy only — for phonics dashboard and milestone detection
-  const literacyProgress = progress.filter(p => (p as LetterProgress & { subject?: string }).subject === "literacy" || !(p as LetterProgress & { subject?: string }).subject);
+  // Literacy — for phonics dashboard (ONLY literacy rows)
   const masteredLetters = literacyProgress.filter(p => p.mastered).map(p => p.letter);
-  const masteredCount = masteredLetters.length;
+  const masteredCount   = masteredLetters.length; // max 26
 
-  // Numeracy — numbers 1–10
-  const numeracyProgress = progress.filter(p => (p as LetterProgress & { subject?: string }).subject === "numeracy");
+  // Numeracy — for numbers dashboard
   const masteredNumbers = numeracyProgress.filter(p => p.mastered).map(p => p.letter);
 
-  // World — all 24 items
-  const worldProgress = progress.filter(p => (p as LetterProgress & { subject?: string }).subject === "world");
+  // World — for world dashboard
   const masteredWorldItems = worldProgress.filter(p => p.mastered).map(p => p.letter);
+
+  // Combined for legacy callers that just need all progress
+  const progress = [...literacyProgress, ...numeracyProgress, ...worldProgress];
 
   return {
     progress,
     literacyProgress,
     numeracyProgress,
     worldProgress,
-    masteredCount,
-    masteredLetters,
-    masteredNumbers,
-    masteredWorldItems,
+    masteredCount,       // literacy only — use this for letter stats
+    masteredLetters,     // literacy only
+    masteredNumbers,     // numeracy only
+    masteredWorldItems,  // world only
     recordHeard,
     recordCorrect,
     recordTraced,
