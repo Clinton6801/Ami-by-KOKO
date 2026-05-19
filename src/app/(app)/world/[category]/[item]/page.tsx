@@ -5,8 +5,14 @@ import { notFound } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Koko from "@/components/characters/Koko";
+import Certificate from "@/components/ui/Certificate";
 import { WORLD_ITEMS, WORLD_CATEGORIES, getItemsByCategory } from "@/lib/content/world";
+import { awardCertificate } from "@/lib/awardCertificate";
+import { CERTIFICATE_CONFIGS } from "@/types";
 import { useChild } from "@/hooks/useChild";
+import { useProgress } from "@/hooks/useProgress";
+
+const TOTAL_WORLD_ITEMS = Object.keys(WORLD_ITEMS).length; // 24
 
 interface Props { params: Promise<{ category: string; item: string }> }
 
@@ -18,7 +24,9 @@ export default function WorldItemPage({ params }: Props) {
 
   const [speaking, setSpeaking] = useState(false);
   const [known, setKnown] = useState(false);
+  const [certToShow, setCertToShow] = useState<string | null>(null);
   const { activeChild } = useChild();
+  const { masteredWorldItems } = useProgress(activeChild?.id ?? null, "english");
 
   const items = getItemsByCategory(category);
   const idx = items.findIndex(i => i.key === itemKey);
@@ -90,6 +98,13 @@ export default function WorldItemPage({ params }: Props) {
                   patch: { mastered: true, heard_count: 1 },
                 }),
               });
+
+              // Check world_explorer — all 24 items mastered (include this one)
+              const allMastered = new Set([...masteredWorldItems, itemKey]);
+              if (allMastered.size >= TOTAL_WORLD_ITEMS) {
+                const awarded = await awardCertificate(activeChild.id, "world_explorer");
+                if (awarded) { setCertToShow("world_explorer"); return; }
+              }
             }
           }}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-extrabold text-lg py-4 rounded-3xl transition shadow-md shadow-green-200 active:scale-95">
@@ -129,6 +144,16 @@ export default function WorldItemPage({ params }: Props) {
           </Link>
         ) : <div className="flex-1"/>}
       </div>
+
+      {/* Certificate celebration */}
+      {certToShow && CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS] && (
+        <Certificate
+          childName={activeChild?.name ?? "Champion"}
+          achievement={CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS].achievement}
+          subject={CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS].subject}
+          onClose={() => setCertToShow(null)}
+        />
+      )}
     </div>
   );
 }

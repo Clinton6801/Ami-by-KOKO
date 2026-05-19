@@ -9,10 +9,14 @@ import TracingCanvas from "@/components/phonics/TracingCanvas";
 import Koko from "@/components/characters/Koko";
 import CountingActivity from "@/components/numeracy/CountingActivity";
 import SongButton from "@/components/ui/SongButton";
+import Certificate from "@/components/ui/Certificate";
 import { getNumberSong } from "@/lib/audio/songs";
 import { isNumberFree } from "@/lib/access";
+import { awardCertificate } from "@/lib/awardCertificate";
+import { CERTIFICATE_CONFIGS } from "@/types";
 import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
+import { useProgress } from "@/hooks/useProgress";
 
 const NUMBER_DATA: Record<string, { numeral: string; word: string; yorubaWord: string; imageUrl: string; colour: string; itemName: string }> = {
   "1":  { numeral:"1",  word:"One",   yorubaWord:"Ọkan", imageUrl:"https://cdn.jsdelivr.net/npm/openmoji@15.0.0/color/svg/1F96D.svg", colour:"from-amber-400 to-orange-400", itemName:"mango"     },
@@ -39,8 +43,10 @@ export default function NumberDetailContent({ language, number }: { language: st
   const [speaking, setSpeaking] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
+  const [certToShow, setCertToShow] = useState<string | null>(null);
   const { activeChild } = useChild();
   const { hasPaid } = useAccess(activeChild);
+  const { masteredNumbers } = useProgress(activeChild?.id ?? null, "english");
   const song = getNumberSong(parseInt(number));
   const songLocked = !hasPaid && !isNumberFree(number);
 
@@ -59,10 +65,10 @@ export default function NumberDetailContent({ language, number }: { language: st
     window.speechSynthesis.speak(u);
   }
 
-  function handleCorrect() {
+  async function handleCorrect() {
     setCheckState("correct");
     if (activeChild?.id) {
-      fetch("/api/progress", {
+      await fetch("/api/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -73,6 +79,13 @@ export default function NumberDetailContent({ language, number }: { language: st
           patch: { mastered: true, heard_count: 1 },
         }),
       });
+
+      // Check number_star — all 10 numbers mastered (include this number)
+      const allMastered = new Set([...masteredNumbers, number]);
+      if (allMastered.size >= 10) {
+        const awarded = await awardCertificate(activeChild.id, "number_star");
+        if (awarded) { setCertToShow("number_star"); return; }
+      }
     }
     if (nextNum) setTimeout(() => router.push(`/numeracy/${language}/${nextNum}`), 1200);
   }
@@ -195,6 +208,19 @@ export default function NumberDetailContent({ language, number }: { language: st
           </Link>
         ) : <div className="flex-1"/>}
       </div>
+
+      {/* Certificate celebration */}
+      {certToShow && CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS] && (
+        <Certificate
+          childName={activeChild?.name ?? "Champion"}
+          achievement={CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS].achievement}
+          subject={CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS].subject}
+          onClose={() => {
+            setCertToShow(null);
+            if (nextNum) router.push(`/numeracy/${language}/${nextNum}`);
+          }}
+        />
+      )}
     </div>
   );
 }

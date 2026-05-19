@@ -1,23 +1,20 @@
 "use client";
 
-/**
- * SongButton — plays a song with Kòkò animating.
- * Used on letter detail, number detail, and world category pages.
- */
 import { motion } from "framer-motion";
 import { useSong } from "@/hooks/useSong";
+import { useChild } from "@/hooks/useChild";
 import type { SongData } from "@/lib/audio/songs";
 
 interface SongButtonProps {
   song: SongData;
   label?: string;
-  /** If true, show UpgradePrompt instead of playing */
   locked?: boolean;
   onLockedTap?: () => void;
 }
 
 export default function SongButton({ song, label, locked, onLockedTap }: SongButtonProps) {
-  const { play, stop, isPlaying } = useSong();
+  const { activeChild } = useChild();
+  const { play, stop, isPlaying } = useSong(activeChild?.id);
 
   function handleClick() {
     if (locked) { onLockedTap?.(); return; }

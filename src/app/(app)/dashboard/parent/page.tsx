@@ -27,7 +27,8 @@ function CertificateCard({ type, earnedAt, onView }: {
   const date = new Date(earnedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const ICONS: Record<CertificateType, string> = {
     first_steps: "👣", letter_master: "🔤", number_star: "⭐",
-    world_explorer: "🌍", story_hero: "🦜", assignment_champion: "📝", weekly_streak: "🔥",
+    world_explorer: "🌍", story_hero: "🦜", assignment_champion: "📝",
+    weekly_streak: "🔥", sound_explorer: "🎵",
   };
   return (
     <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}

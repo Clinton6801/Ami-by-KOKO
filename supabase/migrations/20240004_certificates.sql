@@ -75,7 +75,14 @@ drop policy if exists "Anyone can read class config" on public.class_config;
 create policy "Anyone can read class config"
   on public.class_config for select using (true);
 
--- Seed class config (safe — ON CONFLICT DO NOTHING)
+-- Update certificates type constraint to include sound_explorer
+alter table public.certificates drop constraint if exists certificates_type_check;
+alter table public.certificates add constraint certificates_type_check
+  check (type in (
+    'first_steps','letter_master','number_star',
+    'world_explorer','story_hero','assignment_champion',
+    'weekly_streak','sound_explorer'
+  ));
 insert into public.class_config (class, active) values
   ('sprout_1',      true),
   ('sprout_2',      false),

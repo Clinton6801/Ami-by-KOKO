@@ -18,6 +18,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useChild } from "@/hooks/useChild";
 import TracingCanvas from "@/components/phonics/TracingCanvas";
 import Koko from "@/components/characters/Koko";
+import Certificate from "@/components/ui/Certificate";
+import { awardCertificate } from "@/lib/awardCertificate";
+import { CERTIFICATE_CONFIGS } from "@/types";
 import type { Assignment } from "@/types";
 import { LETTER_DATA } from "@/lib/audio/clips";
 import { WORLD_ITEMS } from "@/lib/content/world";
@@ -248,6 +251,7 @@ export default function AssignmentPage({ params }: Props) {
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [certToShow, setCertToShow] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -311,6 +315,19 @@ export default function AssignmentPage({ params }: Props) {
             detail: assignment.title,
           }),
         }).catch(() => {});
+
+        // Check assignment_champion — 5+ assignments completed
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { count } = await (supabase as any)
+          .from("assignment_progress")
+          .select("id", { count: "exact", head: true })
+          .eq("child_id", activeChild.id)
+          .eq("completed", true);
+
+        if ((count ?? 0) >= 5) {
+          const awarded = await awardCertificate(activeChild.id, "assignment_champion");
+          if (awarded) { setCertToShow("assignment_champion"); return; }
+        }
       }
       setCompleted(true);
     } else {
@@ -341,7 +358,19 @@ export default function AssignmentPage({ params }: Props) {
   }
 
   if (completed) {
-    return <CelebrationScreen title={assignment.title} onHome={() => router.push("/home")}/>;
+    return (
+      <>
+        <CelebrationScreen title={assignment.title} onHome={() => router.push("/home")}/>
+        {certToShow && CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS] && (
+          <Certificate
+            childName={activeChild?.name ?? "Champion"}
+            achievement={CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS].achievement}
+            subject={CERTIFICATE_CONFIGS[certToShow as keyof typeof CERTIFICATE_CONFIGS].subject}
+            onClose={() => setCertToShow(null)}
+          />
+        )}
+      </>
+    );
   }
 
   const currentKey = assignment.content_keys[currentIndex];

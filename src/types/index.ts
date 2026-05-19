@@ -253,6 +253,7 @@ export type CertificateType =
   | 'story_hero'
   | 'assignment_champion'
   | 'weekly_streak'
+  | 'sound_explorer'
 
 export interface Certificate {
   id: string
@@ -310,5 +311,11 @@ export const CERTIFICATE_CONFIGS: Record<CertificateType, CertificateConfig> = {
     title: 'Weekly Streak',
     achievement: 'learned with Kòkò 7 days in a row!',
     subject: 'Learning Streak',
+  },
+  sound_explorer: {
+    type: 'sound_explorer',
+    title: 'Sound Explorer',
+    achievement: 'heard all 26 letter songs with Kòkò!',
+    subject: 'Songs',
   },
 }
