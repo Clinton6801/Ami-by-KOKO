@@ -11,7 +11,7 @@ import {
   type ChildWithClass, type Assignment, type AssignmentProgress,
 } from "@/types";
 
-type Tab = "overview" | "students" | "assignments" | "reports";
+type Tab = "overview" | "students" | "assignments" | "reports" | "live" | "challenges";
 
 interface School {
   id: string;
@@ -410,7 +410,148 @@ function AssignmentsTab({ schoolId, adminId }: { schoolId: string; adminId: stri
   );
 }
 
-// ─── Reports tab ──────────────────────────────────────────────────────────────
+// ─── Live Class tab ───────────────────────────────────────────────────────────
+
+function LiveClassTab({ schoolId, students }: { schoolId: string; students: ChildWithClass[] }) {
+  const supabase = createClient();
+  const [subject, setSubject] = useState<"literacy" | "numeracy" | "world">("literacy");
+  const [contentKey, setContentKey] = useState("");
+  const [classLevel, setClassLevel] = useState("sprout_1");
+  const [isLive, setIsLive] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
+
+  const channelName = `live-class-${schoolId}-${classLevel}`;
+
+  const LITERACY_KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const NUMERACY_KEYS = ["1","2","3","4","5","6","7","8","9","10"];
+  const WORLD_KEYS = ["head","eyes","nose","mouth","hands","feet","dog","cat","cow","goat","chicken","parrot","mango","orange","banana","cup","book","bag","shoe","ball","spoon","sun","rain","cloud"];
+
+  const contentOptions = subject === "literacy" ? LITERACY_KEYS
+    : subject === "numeracy" ? NUMERACY_KEYS
+    : WORLD_KEYS;
+
+  async function broadcast(type: "start" | "navigate" | "end") {
+    setBroadcasting(true);
+    const channel = supabase.channel(channelName);
+    await channel.subscribe();
+    await channel.send({
+      type: "broadcast",
+      event: "live_class",
+      payload: {
+        type,
+        subject,
+        contentKey: contentKey || contentOptions[0],
+        teacherId: "teacher",
+        title: type === "start" ? `Live Class — ${subject}` : undefined,
+      },
+    });
+    await supabase.removeChannel(channel);
+    setBroadcasting(false);
+    if (type === "start") setIsLive(true);
+    if (type === "end") setIsLive(false);
+  }
+
+  const studentCount = students.filter(s => (s as ChildWithClass & { class?: string }).class === classLevel).length;
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Status banner */}
+      <div className={`rounded-3xl p-4 flex items-center gap-3 ${isLive ? "bg-green-50 ring-1 ring-green-300" : "bg-stone-50 ring-1 ring-stone-200"}`}>
+        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isLive ? "bg-green-500" : "bg-stone-300"}`}/>
+        <div>
+          <p className="font-bold text-stone-800 text-sm">{isLive ? "🔴 Live class in progress" : "No live class running"}</p>
+          <p className="text-xs text-stone-500">{studentCount} students in {classLevel.replace("_", " ")}</p>
+        </div>
+      </div>
+
+      {/* Class selector */}
+      <div>
+        <label className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 block">Class</label>
+        <div className="flex gap-2">
+          {["sprout_1","sprout_2","sprout_3"].map(c => (
+            <button key={c} onClick={() => setClassLevel(c)}
+              className={`flex-1 py-2.5 rounded-2xl text-xs font-bold border-2 transition ${
+                classLevel === c ? "border-amber-400 bg-amber-50 text-amber-700" : "border-stone-200 text-stone-600"
+              }`}>
+              {c.replace("_", " ")}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Subject selector */}
+      <div>
+        <label className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 block">Subject</label>
+        <div className="flex gap-2">
+          {(["literacy","numeracy","world"] as const).map(s => (
+            <button key={s} onClick={() => { setSubject(s); setContentKey(""); }}
+              className={`flex-1 py-2.5 rounded-2xl text-xs font-bold border-2 transition capitalize ${
+                subject === s ? "border-amber-400 bg-amber-50 text-amber-700" : "border-stone-200 text-stone-600"
+              }`}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content key selector */}
+      <div>
+        <label className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 block">
+          Content — {contentKey || "select below"}
+        </label>
+        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+          {contentOptions.map(k => (
+            <button key={k} onClick={() => setContentKey(k)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition ${
+                contentKey === k ? "border-amber-400 bg-amber-100 text-amber-700" : "border-stone-200 text-stone-600 hover:border-amber-200"
+              }`}>
+              {k}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col gap-3">
+        {!isLive ? (
+          <button
+            onClick={() => broadcast("start")}
+            disabled={broadcasting || !contentKey}
+            className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-extrabold py-4 rounded-2xl transition shadow-md shadow-green-200"
+          >
+            {broadcasting ? "Starting…" : "🚀 Start Live Class"}
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => broadcast("navigate")}
+              disabled={broadcasting || !contentKey}
+              className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition shadow-md shadow-amber-200"
+            >
+              {broadcasting ? "Sending…" : `➡ Show ${contentKey || "content"} to all students`}
+            </button>
+            <button
+              onClick={() => broadcast("end")}
+              disabled={broadcasting}
+              className="w-full bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white font-bold py-3 rounded-2xl transition"
+            >
+              ⏹ End Live Class
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Student join link */}
+      <div className="bg-stone-50 rounded-2xl p-4 ring-1 ring-stone-200">
+        <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-1">Student join link</p>
+        <p className="text-sm font-mono text-stone-700 break-all">
+          ami-by-koko.vercel.app/live-class/{schoolId}
+        </p>
+        <p className="text-xs text-stone-400 mt-1">Students logged in will see the live class banner automatically</p>
+      </div>
+    </div>
+  );
+}
 
 function ReportsTab({ students }: { students: ChildWithClass[] }) {
   const supabase = createClient();
@@ -474,6 +615,145 @@ function ReportsTab({ students }: { students: ChildWithClass[] }) {
   );
 }
 
+// ─── Challenges tab ───────────────────────────────────────────────────────────
+
+function ChallengesTab({ schoolId, students }: { schoolId: string; students: ChildWithClass[] }) {
+  const supabase = createClient();
+  const [challenges, setChallenges] = useState<Array<{
+    id: string; title: string; class: string; metric: string;
+    target_count: number; week_start: string; week_end: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [form, setForm] = useState({
+    title: "", cls: "sprout_1", metric: "letters_mastered", target: "5",
+  });
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  async function loadChallenges() {
+    setLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any)
+      .from("challenges").select("*").eq("school_id", schoolId)
+      .order("week_start", { ascending: false }).limit(20);
+    setChallenges(data ?? []);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadChallenges(); }, [schoolId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function createChallenge(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setCreating(true);
+
+    // Calculate week bounds (Mon–Sun)
+    const now = new Date();
+    const day = now.getDay();
+    const mon = new Date(now); mon.setDate(now.getDate() - day + (day === 0 ? -6 : 1));
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("challenges").insert({
+      school_id: schoolId,
+      class: form.cls,
+      title: form.title,
+      metric: form.metric,
+      target_count: parseInt(form.target),
+      week_start: mon.toISOString().slice(0, 10),
+      week_end: sun.toISOString().slice(0, 10),
+    });
+
+    setForm({ title: "", cls: "sprout_1", metric: "letters_mastered", target: "5" });
+    setCreating(false);
+    loadChallenges();
+  }
+
+  const classCounts = students.reduce<Record<string, number>>((acc, s) => {
+    const c = s.class ?? "sprout_1";
+    acc[c] = (acc[c] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* Create challenge form */}
+      <div className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+        <p className="font-bold text-stone-700 mb-4">Create Weekly Challenge</p>
+        <form onSubmit={createChallenge} className="flex flex-col gap-3">
+          <input
+            type="text" required value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            placeholder="e.g. Master 5 new letters this week!"
+            className="w-full rounded-2xl border border-stone-200 px-4 py-3 text-stone-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          />
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs font-bold text-stone-500 mb-1 block">Class</label>
+              <select value={form.cls} onChange={e => setForm(f => ({ ...f, cls: e.target.value }))}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                <option value="sprout_1">Sprout 1 ({classCounts["sprout_1"] ?? 0})</option>
+                <option value="sprout_2">Sprout 2 ({classCounts["sprout_2"] ?? 0})</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-stone-500 mb-1 block">Metric</label>
+              <select value={form.metric} onChange={e => setForm(f => ({ ...f, metric: e.target.value }))}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                <option value="letters_mastered">Letters</option>
+                <option value="assignments_complete">Assignments</option>
+                <option value="sessions">Sessions</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-stone-500 mb-1 block">Target</label>
+              <input type="number" min={1} max={26} value={form.target}
+                onChange={e => setForm(f => ({ ...f, target: e.target.value }))}
+                className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"/>
+            </div>
+          </div>
+          <button type="submit" disabled={creating || !form.title}
+            className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white font-bold py-3 rounded-2xl transition">
+            {creating ? "Creating…" : "➕ Create Challenge"}
+          </button>
+        </form>
+      </div>
+
+      {/* Challenge list */}
+      <div className="flex flex-col gap-3">
+        <p className="text-xs font-bold text-stone-500 uppercase tracking-wide">Recent Challenges</p>
+        {loading ? (
+          <div className="bg-white rounded-3xl h-20 animate-pulse ring-1 ring-stone-100"/>
+        ) : challenges.length === 0 ? (
+          <div className="bg-white rounded-3xl p-6 text-center shadow-sm ring-1 ring-stone-100">
+            <p className="text-stone-500 text-sm">No challenges yet. Create one above.</p>
+          </div>
+        ) : (
+          challenges.map(c => {
+            const isActive = c.week_start <= today && c.week_end >= today;
+            return (
+              <div key={c.id} className={`bg-white rounded-2xl p-4 shadow-sm ring-1 ${isActive ? "ring-amber-200" : "ring-stone-100"}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-stone-800 text-sm truncate">{c.title}</p>
+                    <p className="text-xs text-stone-400">
+                      {c.class.replace("_", " ")} · {c.metric.replace(/_/g, " ")} · target {c.target_count}
+                    </p>
+                    <p className="text-xs text-stone-400">{c.week_start} → {c.week_end}</p>
+                  </div>
+                  {isActive && (
+                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full flex-shrink-0 ml-2">Active</span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const TABS: { id: Tab; label: string; emoji: string }[] = [
@@ -481,6 +761,8 @@ const TABS: { id: Tab; label: string; emoji: string }[] = [
   { id: "students",    label: "Students",    emoji: "👥" },
   { id: "assignments", label: "Assignments", emoji: "📝" },
   { id: "reports",     label: "Reports",     emoji: "📊" },
+  { id: "live",        label: "Live",        emoji: "🔴" },
+  { id: "challenges",  label: "Challenges",  emoji: "🎯" },
 ];
 
 export default function SchoolDashboardPage() {
@@ -570,6 +852,8 @@ export default function SchoolDashboardPage() {
           {tab === "students"    && <StudentsTab schoolId={school.id} students={students} onRefresh={loadData}/>}
           {tab === "assignments" && <AssignmentsTab schoolId={school.id} adminId={adminId}/>}
           {tab === "reports"     && <ReportsTab students={students}/>}
+          {tab === "live"        && <LiveClassTab schoolId={school.id} students={students}/>}
+          {tab === "challenges"  && <ChallengesTab schoolId={school.id} students={students}/>}
         </motion.div>
       </AnimatePresence>
 

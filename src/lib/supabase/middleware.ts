@@ -40,7 +40,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/story') ||
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/settings') ||
-    request.nextUrl.pathname.startsWith('/school-setup')
+    request.nextUrl.pathname.startsWith('/school-setup') ||
+    request.nextUrl.pathname.startsWith('/live-class')
 
   if (isAppRoute && !user) {
     const url = request.nextUrl.clone()

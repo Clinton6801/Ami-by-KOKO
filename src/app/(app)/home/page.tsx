@@ -7,10 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 import CreateChildModal from "@/components/ui/CreateChildModal";
 import OnboardingFlow from "@/components/ui/OnboardingFlow";
 import SongButton from "@/components/ui/SongButton";
+import ChallengeCard from "@/components/ui/ChallengeCard";
 import { useProgress } from "@/hooks/useProgress";
 import { useStreak } from "@/hooks/useStreak";
 import { useChild } from "@/hooks/useChild";
 import { useAssignments } from "@/hooks/useAssignments";
+import { useChallenges } from "@/hooks/useChallenges";
 import { getSongOfTheDay, getLetterSong } from "@/lib/audio/songs";
 import { SUBJECT_EMOJIS, CLASS_LABELS, type ChildWithClass } from "@/types";
 
@@ -103,6 +105,7 @@ export default function HomePage() {
   const { masteredCount, masteredLetters } = useProgress(activeChild?.id ?? null, "english");
   const { streak } = useStreak(activeChild?.id);
   const { assignments, isCompleted } = useAssignments(activeChildWithClass);
+  const { challenge, myProgress, leaderboard, loading: challengeLoading } = useChallenges(activeChildWithClass);
 
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<"parent" | "school_admin" | null>(null);
@@ -276,6 +279,20 @@ export default function HomePage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* ── Weekly Challenge + Leaderboard (school children only) ── */}
+        {isSchoolChild && (challenge || challengeLoading) && (
+          <div className="px-4 mt-6">
+            <h2 className="text-base font-bold text-stone-700 mb-3">🎯 This Week&apos;s Challenge</h2>
+            <ChallengeCard
+              challenge={challenge}
+              myProgress={myProgress}
+              leaderboard={leaderboard}
+              childId={activeChild?.id ?? null}
+              loading={challengeLoading}
+            />
           </div>
         )}
 
