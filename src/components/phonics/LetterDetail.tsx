@@ -11,6 +11,7 @@ import Certificate from "@/components/ui/Certificate";
 import { playLetterSound } from "@/lib/audio/speech";
 import { getLetterSong } from "@/lib/audio/songs";
 import { isLetterFree } from "@/lib/access";
+import { fireConfetti } from "@/lib/confetti";
 import { useProgress } from "@/hooks/useProgress";
 import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
@@ -82,6 +83,7 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
 
   async function handleCorrect() {
     setCheckState("correct");
+    fireConfetti(); // 🎉 celebrate correct answer
     await recordCorrect(letter);
     // Auto-navigate after 1.2s — but only if no milestone cert fires.
     // If a cert fires, the useEffect sets milestoneShowing.current = true

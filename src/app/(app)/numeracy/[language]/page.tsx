@@ -8,6 +8,7 @@ import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
 import { isNumberFree } from "@/lib/access";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
+import LockedOverlay from "@/components/ui/LockedOverlay";
 
 const NUMBER_DATA: Record<string, {
   numeral: string; word: string; yorubaWord: string; imageUrl: string; colour: string;
@@ -72,25 +73,18 @@ export default function NumeracyGridPage({ params }: Props) {
                 transition={{ duration: 0.2, delay: i * 0.05 }}
                 whileTap={locked ? {} : { scale: 0.92 }}>
                 {locked ? (
-                  <button
-                    onClick={() => setUpgradeOpen(true)}
-                    aria-label={`Number ${data.numeral} — locked`}
-                    className={`relative w-full flex flex-col items-center rounded-2xl bg-gradient-to-br ${data.colour} shadow-md text-white overflow-hidden opacity-60`}
-                  >
+                  <div className={`relative flex flex-col items-center rounded-2xl bg-gradient-to-br ${data.colour} shadow-md text-white overflow-hidden`}>
                     <div className="w-full bg-white/20 flex items-center justify-center p-1.5 pt-2">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center opacity-40">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={data.imageUrl} alt="" className="w-full h-full object-contain" />
                       </div>
                     </div>
-                    <div className="w-full flex flex-col items-center pb-2 pt-1 px-1">
+                    <div className="w-full flex flex-col items-center pb-2 pt-1 px-1 opacity-40">
                       <span className="text-2xl sm:text-3xl font-extrabold drop-shadow leading-none">{data.numeral}</span>
                     </div>
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-0.5 z-10">
-                      <span className="text-lg">🔒</span>
-                      <span className="text-[9px] font-bold text-amber-700">Explorer</span>
-                    </div>
-                  </button>
+                    <LockedOverlay onTap={() => setUpgradeOpen(true)} />
+                  </div>
                 ) : (
                   <Link href={`/numeracy/${language}/${data.numeral}`}
                     className={`flex flex-col items-center rounded-2xl bg-gradient-to-br ${data.colour} shadow-md text-white overflow-hidden transition hover:scale-105`}

@@ -11,6 +11,7 @@ import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
 import { isLetterFree } from "@/lib/access";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
+import LockedOverlay from "@/components/ui/LockedOverlay";
 
 const CARD_COLOURS = [
   "from-amber-400 to-orange-400",
@@ -86,32 +87,23 @@ export default function PhonicsGridPage({ params }: Props) {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.2, delay: i * 0.025 }}>
-                  <button
-                    onClick={() => setUpgradeOpen(true)}
-                    aria-label={`Letter ${data.letter} — locked`}
-                    className={`relative w-full flex flex-col items-center rounded-2xl bg-gradient-to-br ${colour} shadow-md text-white overflow-hidden transition opacity-60`}
-                  >
-                    {/* Image */}
+                  <div className={`relative flex flex-col items-center rounded-2xl bg-gradient-to-br ${colour} shadow-md text-white overflow-hidden`}>
                     <div className="w-full bg-white/20 flex items-center justify-center p-1.5 pt-2">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center opacity-40">
                         {data.imageUrl
                           ? <img src={data.imageUrl} alt="" className="w-full h-full object-contain" />
                           : <span className="text-2xl">📖</span>
                         }
                       </div>
                     </div>
-                    <div className="w-full flex flex-col items-center pb-2 pt-1 px-1">
+                    <div className="w-full flex flex-col items-center pb-2 pt-1 px-1 opacity-40">
                       <div className="flex items-baseline gap-0.5 leading-none">
                         <span className="text-lg sm:text-xl font-extrabold drop-shadow">{data.letter}</span>
                         <span className="text-sm sm:text-base font-bold opacity-75 drop-shadow">{data.letter.toLowerCase()}</span>
                       </div>
                     </div>
-                    {/* Lock overlay */}
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-0.5 z-10">
-                      <span className="text-lg">🔒</span>
-                      <span className="text-[9px] font-bold text-amber-700">Explorer</span>
-                    </div>
-                  </button>
+                    <LockedOverlay onTap={() => setUpgradeOpen(true)} />
+                  </div>
                 </motion.div>
               );
             }

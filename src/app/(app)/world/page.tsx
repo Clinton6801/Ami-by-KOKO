@@ -8,6 +8,7 @@ import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
 import { isCategoryFree } from "@/lib/access";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
+import LockedOverlay from "@/components/ui/LockedOverlay";
 
 export default function WorldPage() {
   const { activeChild } = useChild();
@@ -36,18 +37,11 @@ export default function WorldPage() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }} whileTap={locked ? {} : { scale: 0.94 }}>
                 {locked ? (
-                  <button
-                    onClick={() => setUpgradeOpen(true)}
-                    aria-label={`${cat.label} — locked`}
-                    className={`relative w-full flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white transition opacity-60`}
-                  >
-                    <span className="text-4xl">{cat.emoji}</span>
-                    <span className="font-extrabold text-sm text-center">{cat.label}</span>
-                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-3xl flex flex-col items-center justify-center gap-1 z-10">
-                      <span className="text-2xl">🔒</span>
-                      <span className="text-xs font-bold text-amber-700">Explorer</span>
-                    </div>
-                  </button>
+                  <div className={`relative flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white overflow-hidden`}>
+                    <span className="text-4xl opacity-40">{cat.emoji}</span>
+                    <span className="font-extrabold text-sm text-center opacity-40">{cat.label}</span>
+                    <LockedOverlay onTap={() => setUpgradeOpen(true)} />
+                  </div>
                 ) : (
                   <Link href={`/world/${cat.key}`}
                     className={`flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white transition hover:scale-105`}>

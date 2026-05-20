@@ -3,11 +3,12 @@
 /**
  * Certificate — downloadable achievement certificate.
  * Generated using html2canvas, downloadable as PNG.
- * Shareable on WhatsApp.
+ * Fires confetti on mount for celebration.
  */
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import html2canvas from "html2canvas";
+import { fireConfetti } from "@/lib/confetti";
 
 interface CertificateProps {
   childName: string;
@@ -19,6 +20,11 @@ interface CertificateProps {
 export default function Certificate({ childName, achievement, subject = "English Phonics", onClose }: CertificateProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+
+  // Fire confetti on mount
+  useEffect(() => {
+    fireConfetti();
+  }, []);
 
   async function download() {
     if (!certificateRef.current) return;
