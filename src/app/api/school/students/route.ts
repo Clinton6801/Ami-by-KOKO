@@ -187,27 +187,32 @@ export async function PATCH(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: friendlyError(error, "Failed to update student.") }, { status: 500 });
 
-  // If PIN changed, update the auth password
-  if (pin && pin !== existing?.student_pin) {
+  // Create or update auth account
+  if (pin) {
     if (existing?.auth_user_id) {
-      // Update existing auth account password
-      await adminClient.auth.admin.updateUserById(existing.auth_user_id, {
-        password: studentPassword(schoolId, pin),
-      });
+      // Auth account exists — update password only if PIN changed
+      if (pin !== existing?.student_pin) {
+        await adminClient.auth.admin.updateUserById(existing.auth_user_id, {
+          password: studentPassword(schoolId, pin),
+        });
+      }
     } else {
-      // No auth account yet — create one now
-      const { data: authUser } = await adminClient.auth.admin.createUser({
+      // No auth account yet — create one now (regardless of whether PIN changed)
+      const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email: studentEmail(studentId),
         password: studentPassword(schoolId, pin),
         email_confirm: true,
         user_metadata: { role: "student", child_id: studentId, school_id: schoolId },
       });
-      if (authUser?.user) {
+      if (authErr) {
+        console.error("[students PATCH] auth create error:", authErr);
+      } else if (authUser?.user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (serviceClient as any)
           .from("children")
           .update({ auth_user_id: authUser.user.id })
           .eq("id", studentId);
+        console.log("[students PATCH] auth account created:", authUser.user.id);
       }
     }
   }
