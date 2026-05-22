@@ -2,16 +2,24 @@
 
 /**
  * LockedOverlay — frosted glass overlay for locked content cards.
- * Shows sparkle instead of lock, Kòkò peeking from corner, shimmer animation.
+ *
+ * Parent accounts: shows sparkle + "Unlock with Explorer" (tappable → UpgradePrompt)
+ * Student accounts: shows 🔒 Locked with no pricing text (tappable → SchoolLockedOverlay)
  */
 import { motion } from "framer-motion";
 
 interface LockedOverlayProps {
   onTap: () => void;
+  /** When true, shows school-safe locked state — no pricing, no plan names */
+  isStudent?: boolean;
   label?: string;
 }
 
-export default function LockedOverlay({ onTap, label = "Unlock with Explorer" }: LockedOverlayProps) {
+export default function LockedOverlay({
+  onTap,
+  isStudent = false,
+  label = "Unlock with Explorer",
+}: LockedOverlayProps) {
   return (
     <motion.button
       onClick={onTap}
@@ -22,9 +30,9 @@ export default function LockedOverlay({ onTap, label = "Unlock with Explorer" }:
         backdropFilter: "blur(2px)",
         WebkitBackdropFilter: "blur(2px)",
       }}
-      aria-label={label}
+      aria-label={isStudent ? "Locked content" : label}
     >
-      {/* Shimmer sweep */}
+      {/* Shimmer sweep — always shown */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -35,7 +43,7 @@ export default function LockedOverlay({ onTap, label = "Unlock with Explorer" }:
         transition={{ repeat: Infinity, duration: 2.5, ease: "linear", repeatDelay: 1 }}
       />
 
-      {/* Kòkò peeking from top-right */}
+      {/* Kòkò peeking from top-right — always shown */}
       <motion.span
         className="absolute top-0.5 right-1 text-base leading-none"
         animate={{ y: [0, -2, 0] }}
@@ -44,19 +52,29 @@ export default function LockedOverlay({ onTap, label = "Unlock with Explorer" }:
         🦜
       </motion.span>
 
-      {/* Sparkle + label */}
-      <div className="flex flex-col items-center gap-0.5">
-        <motion.span
-          className="text-lg"
-          animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-        >
-          ✨
-        </motion.span>
-        <span className="text-[9px] font-bold text-amber-700 text-center leading-tight px-1">
-          {label}
-        </span>
-      </div>
+      {isStudent ? (
+        /* Student: simple lock icon, no pricing */
+        <div className="flex flex-col items-center gap-0.5">
+          <span className="text-lg">🔒</span>
+          <span className="text-[9px] font-bold text-stone-600 text-center leading-tight px-1">
+            Locked
+          </span>
+        </div>
+      ) : (
+        /* Parent: sparkle + upgrade label */
+        <div className="flex flex-col items-center gap-0.5">
+          <motion.span
+            className="text-lg"
+            animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          >
+            ✨
+          </motion.span>
+          <span className="text-[9px] font-bold text-amber-700 text-center leading-tight px-1">
+            {label}
+          </span>
+        </div>
+      )}
     </motion.button>
   );
 }

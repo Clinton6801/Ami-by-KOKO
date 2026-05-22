@@ -12,7 +12,7 @@ import LockedOverlay from "@/components/ui/LockedOverlay";
 
 export default function WorldPage() {
   const { activeChild } = useChild();
-  const { hasPaid } = useAccess(activeChild);
+  const { hasPaid, isStudent } = useAccess(activeChild);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   return (
@@ -21,11 +21,14 @@ export default function WorldPage() {
         <div className="text-center">
           <h1 className="text-2xl font-extrabold text-stone-800">My World</h1>
           <p className="text-stone-500 text-sm mt-1">Tap a category to explore!</p>
-          {!hasPaid && (
+          {!hasPaid && !isStudent && (
             <p className="text-amber-600 text-xs font-semibold mt-1">
               🔒 Animals, Fruits, Objects & Weather locked ·{" "}
               <button onClick={() => setUpgradeOpen(true)} className="underline">Unlock Explorer</button>
             </p>
+          )}
+          {!hasPaid && isStudent && (
+            <p className="text-amber-600 text-xs font-semibold mt-1">🔒 Some categories are locked</p>
           )}
         </div>
 
@@ -40,7 +43,7 @@ export default function WorldPage() {
                   <div className={`relative flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br ${cat.colour} shadow-md text-white overflow-hidden`}>
                     <span className="text-4xl opacity-40">{cat.emoji}</span>
                     <span className="font-extrabold text-sm text-center opacity-40">{cat.label}</span>
-                    <LockedOverlay onTap={() => setUpgradeOpen(true)} />
+                    <LockedOverlay onTap={() => setUpgradeOpen(true)} isStudent={isStudent} />
                   </div>
                 ) : (
                   <Link href={`/world/${cat.key}`}

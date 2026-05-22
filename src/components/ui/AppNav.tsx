@@ -33,14 +33,49 @@ export default function AppNav({ profile }: AppNavProps) {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [childName, setChildName] = useState<string | null>(null);
   const [childAvatar, setChildAvatar] = useState<string | null>(null);
+  const [studentContext, setStudentContext] = useState<string | null>(null); // "SOW · Sprout 1"
 
   const isHome = pathname === "/home";
   const currentLabel = Object.entries(MODE_LABELS).find(([key]) => pathname.startsWith(key))?.[1];
   const isSchoolAdmin = profile.role === "school_admin";
+  const [isStudent, setIsStudent] = useState(false);
 
-  // Load active child for personalisation
+  // Detect student account and load school context
   useEffect(() => {
-    if (isSchoolAdmin) return;
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const student = user.email?.endsWith("@amibykoko.app") ?? false;
+      setIsStudent(student);
+
+      if (student) {
+        // Query child + school in one go
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase as any)
+          .from("children")
+          .select("name, avatar_url, class, schools(name)")
+          .eq("auth_user_id", user.id)
+          .limit(1)
+          .single();
+
+        if (data) {
+          setChildName(data.name);
+          setChildAvatar(data.avatar_url ?? null);
+          const schoolName = data.schools?.name ?? null;
+          const classLabel = data.class
+            ? data.class.replace("sprout_", "Sprout ").replace("stepping_stone", "Stepping Stone")
+            : null;
+          if (schoolName || classLabel) {
+            setStudentContext([schoolName, classLabel].filter(Boolean).join(" · "));
+          }
+        }
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load active child for parent personalisation
+  useEffect(() => {
+    if (isSchoolAdmin || isStudent) return;
     const savedId = typeof window !== "undefined" ? localStorage.getItem("activeChildId") : null;
     if (!savedId) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,12 +84,17 @@ export default function AppNav({ profile }: AppNavProps) {
         if (data) { setChildName(data.name); setChildAvatar(data.avatar_url); }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSchoolAdmin]);
+  }, [isSchoolAdmin, isStudent]);
 
   async function handleSignOut() {
     setSigningOut(true);
     await supabase.auth.signOut();
-    router.push("/auth/login");
+    if (isStudent) {
+      localStorage.removeItem("activeChildId");
+      router.push("/student-login");
+    } else {
+      router.push("/auth/login");
+    }
     router.refresh();
   }
 
@@ -115,9 +155,11 @@ export default function AppNav({ profile }: AppNavProps) {
               <span className="text-lg leading-none">
                 {isSchoolAdmin ? "🏫" : (childAvatar ?? "👩‍👦")}
               </span>
-              <span className="text-xs font-bold text-amber-900 hidden sm:block max-w-[80px] truncate">
+              <span className="text-xs font-bold text-amber-900 hidden sm:block max-w-[120px] truncate">
                 {isSchoolAdmin
                   ? (profile.full_name.split(" ")[0] || "Admin")
+                  : isStudent
+                  ? (studentContext ?? childName ?? "Student")
                   : (childName ?? profile.full_name.split(" ")[0])}
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
@@ -143,10 +185,18 @@ export default function AppNav({ profile }: AppNavProps) {
               className="absolute right-3 sm:right-4 top-14 z-50 bg-white rounded-2xl shadow-xl ring-1 ring-amber-100 py-2 min-w-[190px]"
             >
               <div className="px-4 py-2.5 border-b border-amber-50">
-                <p className="font-bold text-amber-900 text-sm">{profile.full_name || "Account"}</p>
-                <p className="text-xs text-stone-500 capitalize">{profile.role.replace("_", " ")}</p>
-                {childName && !isSchoolAdmin && (
-                  <p className="text-xs text-amber-600 font-semibold mt-0.5">👶 {childName}</p>
+                <p className="font-bold text-amber-900 text-sm">
+                  {isStudent ? (childName ?? "Student") : (profile.full_name || "Account")}
+                </p>
+                {isStudent ? (
+                  studentContext && <p className="text-xs text-stone-500 mt-0.5">🏫 {studentContext}</p>
+                ) : (
+                  <>
+                    <p className="text-xs text-stone-500 capitalize">{profile.role.replace("_", " ")}</p>
+                    {childName && !isSchoolAdmin && (
+                      <p className="text-xs text-amber-600 font-semibold mt-0.5">👶 {childName}</p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -185,7 +235,7 @@ export default function AppNav({ profile }: AppNavProps) {
                 ) : (
                   <button onClick={() => setConfirmSignOut(true)}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition">
-                    <span>🚪</span> Sign out
+                    <span>🚪</span> {isStudent ? "Switch student" : "Sign out"}
                   </button>
                 )}
               </div>

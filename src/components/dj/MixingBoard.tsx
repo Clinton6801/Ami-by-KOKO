@@ -22,9 +22,10 @@ const PAD_COLOURS = [
 interface MixingBoardProps {
   hasPaid?: boolean;
   onLockedTap?: () => void;
+  isStudent?: boolean;
 }
 
-export default function MixingBoard({ hasPaid = false, onLockedTap }: MixingBoardProps) {
+export default function MixingBoard({ hasPaid = false, onLockedTap, isStudent = false }: MixingBoardProps) {
   const [activePads, setActivePads] = useState<Set<string>>(new Set());
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -87,7 +88,7 @@ export default function MixingBoard({ hasPaid = false, onLockedTap }: MixingBoar
               <span className="text-xl font-extrabold">{letter}</span>
               <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl flex flex-col items-center justify-center gap-0.5 z-10">
                 <span className="text-lg">🔒</span>
-                <span className="text-[9px] font-bold text-amber-700">Explorer</span>
+                <span className="text-[9px] font-bold text-stone-600">{isStudent ? "Locked" : "Explorer"}</span>
               </div>
             </button>
           ) : (

@@ -3,6 +3,7 @@
 /**
  * useAccess — client-side hook to check paid access status.
  * Fetches subscription and school data for the active child.
+ * Also exposes isStudent so pages can show the right locked UI.
  */
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,12 +12,15 @@ import type { Child } from "@/types";
 export interface AccessState {
   hasPaid: boolean;
   loading: boolean;
+  /** True when the logged-in user is a student account (@amibykoko.app) */
+  isStudent: boolean;
 }
 
 export function useAccess(activeChild: Child | null): AccessState {
   const supabase = createClient();
   const [hasPaid, setHasPaid] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isStudent, setIsStudent] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +29,9 @@ export function useAccess(activeChild: Child | null): AccessState {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
+
+      const studentAccount = user.email?.endsWith("@amibykoko.app") ?? false;
+      if (!cancelled) setIsStudent(studentAccount);
 
       // School child with active school subscription → full access
       if (activeChild?.school_id) {
@@ -39,6 +46,12 @@ export function useAccess(activeChild: Child | null): AccessState {
           if (!cancelled) { setHasPaid(true); setLoading(false); }
           return;
         }
+      }
+
+      // Student with inactive school subscription — no parent sub check needed
+      if (studentAccount) {
+        if (!cancelled) { setHasPaid(false); setLoading(false); }
+        return;
       }
 
       // Check parent subscription
@@ -61,5 +74,5 @@ export function useAccess(activeChild: Child | null): AccessState {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChild?.id, activeChild?.school_id]);
 
-  return { hasPaid, loading };
+  return { hasPaid, loading, isStudent };
 }

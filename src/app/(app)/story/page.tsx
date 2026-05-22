@@ -41,7 +41,7 @@ function getCurrentScene(shards: number) {
 export default function StoryPage() {
   const { activeChild } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, "english");
-  const { hasPaid } = useAccess(activeChild);
+  const { hasPaid, isStudent } = useAccess(activeChild);
   const { awardCertificate, hasCertificate } = useCertificates(activeChild?.id ?? null);
 
   const shardsCollected = STORY_LETTERS.filter(l => masteredLetters.includes(l)).length;
@@ -137,11 +137,14 @@ export default function StoryPage() {
             );
           })}
         </div>
-        {!hasPaid && (
+        {!hasPaid && !isStudent && (
           <p className="text-center text-xs text-amber-600 font-semibold mt-2">
             🔒 Shards 4–10 locked ·{" "}
             <button onClick={() => setUpgradeOpen(true)} className="underline">Unlock Explorer</button>
           </p>
+        )}
+        {!hasPaid && isStudent && (
+          <p className="text-center text-xs text-amber-600 font-semibold mt-2">🔒 Some shards are locked</p>
         )}
       </div>
 

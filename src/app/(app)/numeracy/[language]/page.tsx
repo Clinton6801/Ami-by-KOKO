@@ -32,7 +32,7 @@ export default function NumeracyGridPage({ params }: Props) {
   if (language !== "english") notFound();
 
   const { activeChild, loading: childLoading } = useChild();
-  const { hasPaid, loading: accessLoading } = useAccess(activeChild);
+  const { hasPaid, loading: accessLoading, isStudent } = useAccess(activeChild);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   if (childLoading || accessLoading) {
@@ -54,11 +54,14 @@ export default function NumeracyGridPage({ params }: Props) {
         <div className="mb-5 text-center">
           <h1 className="text-xl sm:text-2xl font-extrabold text-stone-800">Numbers 1–10</h1>
           <p className="text-stone-500 text-sm mt-1">Tap a number — hear Kòkò say it! 🦜</p>
-          {!hasPaid && (
+          {!hasPaid && !isStudent && (
             <p className="text-amber-600 text-xs font-semibold mt-1">
               🔒 Numbers 4–10 locked ·{" "}
               <button onClick={() => setUpgradeOpen(true)} className="underline">Unlock Explorer</button>
             </p>
+          )}
+          {!hasPaid && isStudent && (
+            <p className="text-amber-600 text-xs font-semibold mt-1">🔒 Some numbers are locked</p>
           )}
         </div>
 
@@ -83,7 +86,7 @@ export default function NumeracyGridPage({ params }: Props) {
                     <div className="w-full flex flex-col items-center pb-2 pt-1 px-1 opacity-40">
                       <span className="text-2xl sm:text-3xl font-extrabold drop-shadow leading-none">{data.numeral}</span>
                     </div>
-                    <LockedOverlay onTap={() => setUpgradeOpen(true)} />
+                    <LockedOverlay onTap={() => setUpgradeOpen(true)} isStudent={isStudent} />
                   </div>
                 ) : (
                   <Link href={`/numeracy/${language}/${data.numeral}`}

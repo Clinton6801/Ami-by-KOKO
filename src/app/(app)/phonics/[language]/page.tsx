@@ -34,7 +34,7 @@ export default function PhonicsGridPage({ params }: Props) {
   const alphabet = Object.values(LETTER_DATA);
   const { activeChild, loading: childLoading } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, lang);
-  const { hasPaid, loading: accessLoading } = useAccess(activeChild);
+  const { hasPaid, loading: accessLoading, isStudent } = useAccess(activeChild);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   if (childLoading || accessLoading) {
@@ -66,9 +66,14 @@ export default function PhonicsGridPage({ params }: Props) {
               ⭐ {masteredLetters.length}/26 mastered
             </p>
           )}
-          {!hasPaid && (
+          {!hasPaid && !isStudent && (
             <p className="text-amber-600 text-xs font-semibold mt-1">
               🔒 Letters G–Z locked · <button onClick={() => setUpgradeOpen(true)} className="underline">Unlock Explorer</button>
+            </p>
+          )}
+          {!hasPaid && isStudent && (
+            <p className="text-amber-600 text-xs font-semibold mt-1">
+              🔒 Some letters are locked
             </p>
           )}
         </div>
@@ -102,7 +107,7 @@ export default function PhonicsGridPage({ params }: Props) {
                         <span className="text-sm sm:text-base font-bold opacity-75 drop-shadow">{data.letter.toLowerCase()}</span>
                       </div>
                     </div>
-                    <LockedOverlay onTap={() => setUpgradeOpen(true)} />
+                    <LockedOverlay onTap={() => setUpgradeOpen(true)} isStudent={isStudent} />
                   </div>
                 </motion.div>
               );

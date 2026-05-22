@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { openPaystackPopup, generateReference, PAYSTACK_PLANS } from "@/lib/paystack/client";
 import { useState, useEffect } from "react";
+import SchoolLockedOverlay from "@/components/ui/SchoolLockedOverlay";
 
 interface UpgradePromptProps {
   isOpen: boolean;
@@ -15,13 +16,21 @@ interface UpgradePromptProps {
 export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromptProps) {
   const supabase = createClient();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isStudent, setIsStudent] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.email) setUserEmail(user.email);
+      const email = user?.email ?? null;
+      setUserEmail(email);
+      setIsStudent(email?.endsWith("@amibykoko.app") ?? false);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Students never see pricing — show SchoolLockedOverlay instead
+  if (isStudent) {
+    return <SchoolLockedOverlay isOpen={isOpen} onClose={onClose} />;
+  }
 
   function handlePlan(planKey: keyof typeof PAYSTACK_PLANS) {
     if (!userEmail) {
@@ -36,7 +45,6 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
       reference: generateReference(plan.id),
       planId: plan.id,
       onSuccess: () => {
-        // Webhook will activate subscription — reload to pick up new access
         setTimeout(() => window.location.reload(), 1500);
       },
       onClose: () => {},
@@ -47,7 +55,6 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -56,7 +63,6 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
             className="fixed inset-0 bg-black/40 z-40"
           />
 
-          {/* Bottom sheet */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -64,7 +70,6 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6 pb-10 max-w-lg mx-auto"
           >
-            {/* Kòkò */}
             <div className="text-center mb-4">
               <motion.span
                 animate={{ rotate: [-5, 5, -5] }}
@@ -83,10 +88,7 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
               Get full access to all letters, numbers, and languages with an Explorer plan.
             </p>
 
-            {/* Plans */}
             <div className="flex flex-col gap-3 mb-5">
-
-              {/* Monthly */}
               <button
                 onClick={() => handlePlan("EXPLORER_MONTHLY")}
                 className="w-full flex items-center justify-between bg-amber-50 border-2 border-amber-200 rounded-2xl px-4 py-3 hover:border-amber-400 transition active:scale-95"
@@ -100,7 +102,6 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
                 </p>
               </button>
 
-              {/* Yearly — recommended */}
               <button
                 onClick={() => handlePlan("EXPLORER_YEARLY")}
                 className="w-full flex items-center justify-between bg-amber-500 rounded-2xl px-4 py-3 hover:bg-amber-600 transition relative overflow-hidden active:scale-95"
@@ -117,7 +118,6 @@ export default function UpgradePrompt({ isOpen, onClose, feature }: UpgradePromp
                 </p>
               </button>
 
-              {/* Family */}
               <button
                 onClick={() => handlePlan("FAMILY_MONTHLY")}
                 className="w-full flex items-center justify-between bg-white border border-stone-200 rounded-2xl px-4 py-3 hover:border-amber-300 transition active:scale-95"
