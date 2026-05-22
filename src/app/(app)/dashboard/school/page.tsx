@@ -22,6 +22,21 @@ interface School {
 // ─── Overview tab ─────────────────────────────────────────────────────────────
 
 function OverviewTab({ school, students }: { school: School; students: ChildWithClass[] }) {
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillResult, setBackfillResult] = useState<string | null>(null);
+
+  async function handleBackfill() {
+    setBackfilling(true);
+    setBackfillResult(null);
+    const res = await fetch("/api/school/students/backfill-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ schoolId: school.id }),
+    });
+    const json = await res.json();
+    setBackfillResult(json.message ?? "Done");
+    setBackfilling(false);
+  }
   const classCounts = students.reduce<Record<string, number>>((acc, s) => {
     const c = s.class ?? "sprout_1";
     acc[c] = (acc[c] ?? 0) + 1;
@@ -75,6 +90,20 @@ function OverviewTab({ school, students }: { school: School; students: ChildWith
           ⬇ Export students CSV
         </button>
       )}
+
+      {/* Fix student logins — creates Supabase auth accounts for students without one */}
+      <div className="flex flex-col gap-2">
+        <button onClick={handleBackfill} disabled={backfilling}
+          className="w-full flex items-center justify-center gap-2 text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 py-3 rounded-2xl transition border border-amber-200 disabled:opacity-60">
+          {backfilling ? "⏳ Setting up logins…" : "🔑 Fix student logins"}
+        </button>
+        {backfillResult && (
+          <p className="text-xs text-center text-stone-500 font-medium">{backfillResult}</p>
+        )}
+        <p className="text-xs text-stone-400 text-center">
+          Run this once to enable cross-device student login
+        </p>
+      </div>
     </div>
   );
 }

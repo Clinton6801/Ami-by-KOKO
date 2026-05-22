@@ -1,0 +1,126 @@
+/**
+ * POST /api/school/students/backfill-auth
+ * Creates Supabase auth accounts for all school students that have a PIN
+ * but no auth_user_id. Called once by the school admin to fix existing students.
+ *
+ * Body: { schoolId }
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+
+export async function POST(request: NextRequest) {
+  const { schoolId } = await request.json();
+  if (!schoolId) return NextResponse.json({ error: "schoolId required" }, { status: 400 });
+
+  const cookieStore = await cookies();
+  const anonClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (list) => {
+          try { list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); }
+          catch { /* server component */ }
+        },
+      },
+    }
+  );
+
+  // Verify caller is school admin
+  const { data: { user } } = await anonClient.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile } = await (anonClient as any)
+    .from("profiles").select("role, school_id").eq("id", user.id).single();
+  if (!profile || profile.role !== "school_admin" || profile.school_id !== schoolId) {
+    return NextResponse.json({ error: "Not authorised." }, { status: 403 });
+  }
+
+  const adminClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const serviceClient = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { cookies: { getAll: () => [], setAll: () => {} } }
+  );
+
+  // Fetch all students with a PIN but no auth_user_id
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: students } = await (serviceClient as any)
+    .from("children")
+    .select("id, student_pin, auth_user_id")
+    .eq("school_id", schoolId)
+    .not("student_pin", "is", null)
+    .is("auth_user_id", null);
+
+  if (!students || students.length === 0) {
+    return NextResponse.json({ message: "All students already have auth accounts.", fixed: 0 });
+  }
+
+  // Fetch school_code for password construction
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: school } = await (serviceClient as any)
+    .from("schools")
+    .select("school_code")
+    .eq("id", schoolId)
+    .single();
+
+  const schoolCode = (school?.school_code ?? schoolId).toUpperCase();
+
+  let fixed = 0;
+  const errors: string[] = [];
+
+  for (const student of students as { id: string; student_pin: string; auth_user_id: string | null }[]) {
+    const email = `student_${student.id}@amibykoko.app`;
+    const password = `${schoolCode}-${student.student_pin}`;
+
+    // Check if auth user already exists with this email
+    const { data: existing } = await adminClient.auth.admin.listUsers();
+    const existingUser = existing?.users?.find(u => u.email === email);
+
+    let authUserId: string | null = null;
+
+    if (existingUser) {
+      authUserId = existingUser.id;
+      console.log(`[backfill] found existing auth user for ${student.id}: ${authUserId}`);
+    } else {
+      const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { role: "student", child_id: student.id, school_id: schoolId },
+      });
+
+      if (authErr) {
+        console.error(`[backfill] failed to create auth for ${student.id}:`, authErr.message);
+        errors.push(`${student.id}: ${authErr.message}`);
+        continue;
+      }
+      authUserId = authUser?.user?.id ?? null;
+    }
+
+    if (authUserId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (serviceClient as any)
+        .from("children")
+        .update({ auth_user_id: authUserId })
+        .eq("id", student.id);
+      fixed++;
+      console.log(`[backfill] linked auth_user_id for ${student.id}: ${authUserId}`);
+    }
+  }
+
+  return NextResponse.json({
+    message: `Fixed ${fixed} of ${students.length} students.${errors.length > 0 ? ` ${errors.length} failed.` : ""}`,
+    created: fixed,
+    failed: errors.length,
+    errors: errors.length > 0 ? errors : undefined,
+  });
+}

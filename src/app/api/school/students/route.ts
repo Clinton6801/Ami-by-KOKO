@@ -75,12 +75,12 @@ async function verifyAdmin(
 
 /** Synthetic email for a student — never receives real email */
 function studentEmail(childId: string): string {
-  return `${childId}@students.amibykoko.com`;
+  return `student_${childId}@amibykoko.app`;
 }
 
-/** Password derived from school + PIN — never shown to the student */
-function studentPassword(schoolId: string, pin: string): string {
-  return `${schoolId}-${pin}`;
+/** Password: SCHOOLCODE-PIN */
+function studentPassword(schoolCode: string, pin: string): string {
+  return `${schoolCode.toUpperCase()}-${pin}`;
 }
 
 // ─── POST — create student ────────────────────────────────────────────────────
@@ -119,9 +119,18 @@ export async function POST(request: NextRequest) {
 
   // 2. Create Supabase auth account (only if PIN is set — PIN is required for login)
   if (pin) {
+    // Fetch school_code for password construction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: school } = await (serviceClient as any)
+      .from("schools")
+      .select("school_code")
+      .eq("id", schoolId)
+      .single();
+    const schoolCode = (school?.school_code ?? schoolId).toUpperCase();
+
     const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
       email: studentEmail(child.id),
-      password: studentPassword(schoolId, pin),
+      password: studentPassword(schoolCode, pin),
       email_confirm: true, // skip email confirmation
       user_metadata: {
         role: "student",
@@ -187,20 +196,29 @@ export async function PATCH(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: friendlyError(error, "Failed to update student.") }, { status: 500 });
 
+  // Fetch school_code for password construction
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: school } = await (serviceClient as any)
+    .from("schools")
+    .select("school_code")
+    .eq("id", schoolId)
+    .single();
+  const schoolCode = (school?.school_code ?? schoolId).toUpperCase();
+
   // Create or update auth account
   if (pin) {
     if (existing?.auth_user_id) {
       // Auth account exists — update password only if PIN changed
       if (pin !== existing?.student_pin) {
         await adminClient.auth.admin.updateUserById(existing.auth_user_id, {
-          password: studentPassword(schoolId, pin),
+          password: studentPassword(schoolCode, pin),
         });
       }
     } else {
       // No auth account yet — create one now (regardless of whether PIN changed)
       const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email: studentEmail(studentId),
-        password: studentPassword(schoolId, pin),
+        password: studentPassword(schoolCode, pin),
         email_confirm: true,
         user_metadata: { role: "student", child_id: studentId, school_id: schoolId },
       });

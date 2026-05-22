@@ -201,36 +201,24 @@ function PinStep({
     if (next.length === 4) {
       setLoading(true);
 
-      // Strategy 1: try Supabase Auth sign-in (cross-device, works if auth account exists)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const authEmail = `${student.id}@students.amibykoko.com`;
-      const authPassword = `${schoolId}-${next}`;
+      // Sign in via Supabase Auth — synthetic email + school-scoped password
+      const email = `student_${student.id}@amibykoko.app`;
+      const password = `${schoolId.toUpperCase()}-${next}`;
 
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: authEmail,
-        password: authPassword,
+      const { data, error: signInErr } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (!signInErr) {
-        // Real Supabase session — set activeChildId and go home
+      if (!signInErr && data.session) {
         localStorage.setItem("activeChildId", student.id);
         window.location.href = "/home";
         return;
       }
 
-      // Strategy 2: fallback — verify PIN locally (for students without auth accounts)
-      if (next === student.student_pin) {
-        // PIN matches but no Supabase auth account — set a student session cookie
-        // so the middleware allows access to /home
-        document.cookie = `student_session=${student.id}; path=/; max-age=86400; SameSite=Lax`;
-        localStorage.setItem("activeChildId", student.id);
-        window.location.href = "/home";
-        return;
-      }
-
-      // Wrong PIN
+      // Wrong PIN (or no auth account yet — admin needs to run Fix Student Logins)
       setError(true);
-      setErrorMsg("Wrong number, try again!");
+      setErrorMsg("Wrong PIN. Try again!");
       setShaking(true);
       setLoading(false);
       setTimeout(() => { setPin(""); setShaking(false); }, 600);

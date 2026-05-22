@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import type { Profile } from '@/types'
 import AppNav from '@/components/ui/AppNav'
@@ -17,24 +16,10 @@ export default async function AppLayout({
   let profile: Profile;
 
   if (!user) {
-    // Check for student PIN fallback session (cookie-based, no Supabase auth)
-    const cookieStore = await cookies()
-    const studentSession = cookieStore.get("student_session")
-
-    if (studentSession?.value) {
-      // Student logged in via PIN fallback — build a minimal profile
-      profile = {
-        id: studentSession.value,
-        role: "parent",
-        full_name: "Student",
-        created_at: new Date().toISOString(),
-      };
-    } else {
-      redirect('/auth/login')
-    }
+    redirect('/auth/login')
   } else {
-    // Supabase auth session exists
-    const isStudent = user.user_metadata?.role === "student";
+    // Detect student accounts by synthetic email domain
+    const isStudent = user.email?.endsWith('@amibykoko.app') ?? false;
 
     if (isStudent) {
       profile = {
