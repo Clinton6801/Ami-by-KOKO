@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Access control helpers — determines what content a user can access
  * based on their subscription status and school membership.
@@ -14,6 +16,14 @@
  */
 
 import type { Subscription } from "@/types";
+
+/**
+ * Returns true if the email belongs to a student account.
+ * Student accounts use the synthetic @amibykoko.app domain.
+ */
+export function isStudentAccount(email?: string | null): boolean {
+  return email?.endsWith("@amibykoko.app") ?? false;
+}
 
 interface School {
   subscription_active: boolean;
