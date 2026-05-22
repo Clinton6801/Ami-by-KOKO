@@ -292,7 +292,13 @@ function AssignmentsTab({ schoolId, adminId }: { schoolId: string; adminId: stri
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Assignment | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this assignment? This cannot be undone.")) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("assignments").delete().eq("id", id);
+    load();
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -322,69 +328,52 @@ function AssignmentsTab({ schoolId, adminId }: { schoolId: string; adminId: stri
 
   function AssignmentRow({ a }: { a: Assignment }) {
     const { done, total } = progressFor(a.id);
-    const isExpanded = expanded === a.id;
-    const detail = progress.filter(p => p.assignment_id === a.id);
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    const activityEmojis: Record<string, string> = { tracing: "✏️", listening: "👂", matching: "🔗", counting: "🔢" };
+
+    // Content summary: first 4 keys + overflow count
+    const keys = a.content_keys;
+    const preview = keys.slice(0, 5).join(", ");
+    const overflow = keys.length > 5 ? ` +${keys.length - 5}` : "";
+    const contentSummary = `${preview}${overflow}`;
 
     return (
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-stone-100 overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <span className="text-xl">{SUBJECT_EMOJIS[a.subject]}</span>
+        <div className="flex items-start gap-3 px-4 py-3">
+          <span className="text-xl mt-0.5 flex-shrink-0">{SUBJECT_EMOJIS[a.subject]}</span>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-stone-800 text-sm truncate">{a.title}</p>
-            <p className="text-xs text-stone-400">
-              {CLASS_LABELS[a.class]} · Term {a.term} · {SUBJECT_LABELS[a.subject]}
-              {a.due_date ? ` · Due ${new Date(a.due_date).toLocaleDateString()}` : ""}
+            <p className="text-xs text-stone-500 mt-0.5">
+              {activityEmojis[a.activity_type] ?? "📋"} {contentSummary}
             </p>
+            <p className="text-xs text-stone-400 mt-0.5">
+              {CLASS_LABELS[a.class]} · Term {a.term}
+              {a.due_date ? ` · Due ${new Date(a.due_date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+            </p>
+            {/* Progress bar */}
+            {total > 0 && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-400 rounded-full transition-all duration-500"
+                    style={{ width: `${pct}%` }}/>
+                </div>
+                <span className="text-xs text-stone-400 flex-shrink-0">{done}/{total}</span>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs font-bold text-stone-500">{done}/{total}</span>
-            <button onClick={() => setExpanded(isExpanded ? null : a.id)}
-              className="text-xs px-2 py-1 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-600 transition">
-              {isExpanded ? "▲" : "▼"}
-            </button>
+          <div className="flex gap-1.5 flex-shrink-0 mt-0.5">
             <button onClick={() => { setEditing(a); setShowModal(true); }}
-              className="text-xs px-2 py-1 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-600 transition">
+              className="text-xs px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-amber-100 text-stone-600 transition"
+              aria-label="Edit assignment">
               ✏️
             </button>
+            <button onClick={() => handleDelete(a.id)}
+              className="text-xs px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-red-100 text-stone-600 transition"
+              aria-label="Delete assignment">
+              🗑
+            </button>
           </div>
         </div>
-
-        {/* Content keys */}
-        <div className="px-4 pb-2 flex gap-1.5 flex-wrap">
-          {a.content_keys.map(k => (
-            <span key={k} className="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">{k}</span>
-          ))}
-        </div>
-
-        {/* Progress detail */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }}
-              className="overflow-hidden border-t border-stone-100">
-              {detail.length === 0 ? (
-                <p className="px-4 py-3 text-xs text-stone-400">No students assigned yet.</p>
-              ) : (
-                <div className="divide-y divide-stone-50">
-                  {detail.map(row => (
-                    <div key={row.id} className="flex items-center gap-2 px-4 py-2">
-                      <span className={`text-sm ${row.completed ? "text-green-500" : "text-stone-300"}`}>
-                        {row.completed ? "✅" : "⏳"}
-                      </span>
-                      <span className="text-xs text-stone-600 flex-1">
-                        {row.child_id.slice(0, 8)}…
-                      </span>
-                      {row.completed_at && (
-                        <span className="text-xs text-stone-400">
-                          {new Date(row.completed_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     );
   }
