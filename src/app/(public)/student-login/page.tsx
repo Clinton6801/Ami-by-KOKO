@@ -218,10 +218,11 @@ function PinStep({
         return;
       }
 
-      // Strategy 2: fallback — verify PIN locally (for students created before auth migration)
+      // Strategy 2: fallback — verify PIN locally (for students without auth accounts)
       if (next === student.student_pin) {
-        // PIN matches but no auth account yet — still let them in via localStorage
-        // (admin should re-save the student to create their auth account)
+        // PIN matches but no Supabase auth account — set a student session cookie
+        // so the middleware allows access to /home
+        document.cookie = `student_session=${student.id}; path=/; max-age=86400; SameSite=Lax`;
         localStorage.setItem("activeChildId", student.id);
         window.location.href = "/home";
         return;

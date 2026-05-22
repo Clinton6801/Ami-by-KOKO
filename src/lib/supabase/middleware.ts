@@ -44,6 +44,11 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/live-class')
 
   if (isAppRoute && !user) {
+    // Allow students who logged in via PIN fallback (no Supabase session)
+    const studentSession = request.cookies.get("student_session");
+    if (studentSession?.value) {
+      return supabaseResponse; // let them through
+    }
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
     return NextResponse.redirect(url)

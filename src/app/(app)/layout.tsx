@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import type { Profile } from '@/types'
 import AppNav from '@/components/ui/AppNav'
@@ -11,39 +12,51 @@ export default async function AppLayout({
   children: React.ReactNode
 }) {
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/auth/login')
-  }
-
-  // Students (role = "student" in user_metadata) don't have a profiles row.
-  // They get a minimal profile object so the layout renders correctly.
-  const isStudent = user.user_metadata?.role === "student";
 
   let profile: Profile;
 
-  if (isStudent) {
-    profile = {
-      id: user.id,
-      role: "parent", // render parent nav for students
-      full_name: user.user_metadata?.child_id ? "Student" : "Student",
-      school_id: user.user_metadata?.school_id ?? null,
-      created_at: user.created_at ?? new Date().toISOString(),
-    };
-  } else {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single<Profile>()
+  if (!user) {
+    // Check for student PIN fallback session (cookie-based, no Supabase auth)
+    const cookieStore = await cookies()
+    const studentSession = cookieStore.get("student_session")
 
-    if (!profileData) {
+    if (studentSession?.value) {
+      // Student logged in via PIN fallback — build a minimal profile
+      profile = {
+        id: studentSession.value,
+        role: "parent",
+        full_name: "Student",
+        created_at: new Date().toISOString(),
+      };
+    } else {
       redirect('/auth/login')
     }
+  } else {
+    // Supabase auth session exists
+    const isStudent = user.user_metadata?.role === "student";
 
-    profile = profileData;
+    if (isStudent) {
+      profile = {
+        id: user.id,
+        role: "parent",
+        full_name: "Student",
+        school_id: user.user_metadata?.school_id ?? null,
+        created_at: user.created_at ?? new Date().toISOString(),
+      };
+    } else {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single<Profile>()
+
+      if (!profileData) {
+        redirect('/auth/login')
+      }
+
+      profile = profileData;
+    }
   }
 
   return (
