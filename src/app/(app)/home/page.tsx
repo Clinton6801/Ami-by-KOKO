@@ -14,6 +14,7 @@ import { useChild } from "@/hooks/useChild";
 import { useAssignments } from "@/hooks/useAssignments";
 import { useChallenges } from "@/hooks/useChallenges";
 import { getSongOfTheDay, getLetterSong } from "@/lib/audio/songs";
+import { isStudentAccount } from "@/lib/access";
 import { SUBJECT_EMOJIS, CLASS_LABELS, type ChildWithClass } from "@/types";
 
 const MODES = [
@@ -26,43 +27,53 @@ const MODES = [
 
 const STORY_LETTERS = ["A","B","C","D","E","F","G","H","I","J"];
 
-// Song of the Day — always free, rotates daily
 const SOTD_LETTER = getSongOfTheDay();
 const SOTD_SONG = getLetterSong(SOTD_LETTER);
 
 // ─── School Admin Home ────────────────────────────────────────────────────────
 
-function SchoolAdminHome({ schoolName }: { schoolName: string }) {
+function SchoolAdminHome({ schoolName, subscriptionActive }: { schoolName: string; subscriptionActive: boolean }) {
   const SHORTCUTS = [
-    { href: "/dashboard/school",    emoji: "👥", title: "Students",    description: "Add, edit and manage students",   gradient: "from-green-500 to-emerald-400", shadow: "shadow-green-200", ring: "ring-green-200" },
-    { href: "/dashboard/school",    emoji: "📝", title: "Assignments", description: "Create and assign activities",    gradient: "from-amber-400 to-orange-400",  shadow: "shadow-amber-200", ring: "ring-amber-200"  },
-    { href: "/dashboard/school",    emoji: "📊", title: "Reports",     description: "View class progress",             gradient: "from-violet-500 to-purple-400", shadow: "shadow-violet-200",ring: "ring-violet-200" },
+    { href: "/dashboard/school", emoji: "👥", title: "Students",    description: "Add, edit and manage students",  gradient: "from-green-500 to-emerald-400", shadow: "shadow-green-200", ring: "ring-green-200" },
+    { href: "/dashboard/school", emoji: "📝", title: "Assignments", description: "Create and assign activities",   gradient: "from-amber-400 to-orange-400",  shadow: "shadow-amber-200", ring: "ring-amber-200"  },
+    { href: "/dashboard/school", emoji: "📊", title: "Reports",     description: "View class progress",            gradient: "from-violet-500 to-purple-400", shadow: "shadow-violet-200",ring: "ring-violet-200" },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-emerald-50 pb-24">
-
-      {/* Hero */}
       <div className="relative overflow-hidden rounded-3xl mx-2 mt-2 bg-gradient-to-br from-green-600 via-emerald-500 to-teal-500 shadow-xl shadow-green-200 min-h-[200px]">
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-10" />
         <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white opacity-10" />
-
         <div className="relative z-10 pt-8 pl-6 pr-4 pb-6">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="inline-flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1 mb-3">
               <span className="text-xs font-bold text-white">🏫 School Admin</span>
             </div>
-            <h1 className="text-2xl font-extrabold text-white leading-tight drop-shadow-sm">
-              {schoolName}
-            </h1>
-            <p className="text-green-100 text-sm mt-1">
-              Manage your students and assignments
-            </p>
+            <h1 className="text-2xl font-extrabold text-white leading-tight drop-shadow-sm">{schoolName}</h1>
+            <p className="text-green-100 text-sm mt-1">Manage your students and assignments</p>
           </motion.div>
         </div>
       </div>
 
-      {/* Quick action cards */}
+      {/* Subscription upgrade banner for inactive schools */}
+      {!subscriptionActive && (
+        <div className="mx-2 mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-2xl flex-shrink-0">🔒</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-amber-800 text-sm">Students can only access A–F</p>
+            <p className="text-amber-700 text-xs mt-0.5">Upgrade your school plan to unlock everything for all students.</p>
+            <a
+              href="https://wa.me/2348000000000?text=Hi%2C%20I%27d%20like%20to%20upgrade%20my%20school%20plan%20on%20%C3%80m%C3%AC%20by%20K%C3%B2k%C3%B2"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition"
+            >
+              💬 Contact us to upgrade
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 mt-6">
         <h2 className="text-base font-bold text-stone-700 mb-3">Quick Actions</h2>
         <div className="flex flex-col gap-3">
@@ -85,7 +96,6 @@ function SchoolAdminHome({ schoolName }: { schoolName: string }) {
         </div>
       </div>
 
-      {/* Go to full dashboard */}
       <div className="px-4 mt-4">
         <Link href="/dashboard/school"
           className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl transition shadow-md shadow-green-200">
@@ -96,9 +106,174 @@ function SchoolAdminHome({ schoolName }: { schoolName: string }) {
   );
 }
 
-// ─── Parent / Student Home ────────────────────────────────────────────────────
+// ─── Student Home ─────────────────────────────────────────────────────────────
 
-export default function HomePage() {
+function StudentHome({
+  child,
+  schoolName,
+}: {
+  child: ChildWithClass;
+  schoolName: string;
+}) {
+  const { masteredCount, masteredLetters } = useProgress(child.id, "english");
+  const { streak } = useStreak(child.id);
+  const { assignments, isCompleted } = useAssignments(child);
+  const { challenge, myProgress, leaderboard, loading: challengeLoading } = useChallenges(child);
+  const shardsFound = STORY_LETTERS.filter(l => masteredLetters.includes(l)).length;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 pb-24">
+
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl mx-2 mt-2 bg-gradient-to-br from-amber-400 via-orange-300 to-yellow-300 shadow-xl shadow-amber-200 min-h-[240px]">
+        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-10" />
+        <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white opacity-10" />
+
+        <div className="relative z-10 pt-8 pl-6 pr-4 pb-4 max-w-[58%]">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            {/* School + class badge */}
+            <div className="inline-flex items-center gap-1.5 bg-white/25 rounded-full px-2.5 py-1 mb-2">
+              <span className="text-xs font-bold text-white">
+                🏫 {schoolName}{child.class ? ` · ${CLASS_LABELS[child.class]}` : ""}
+              </span>
+            </div>
+
+            <h1 className="text-xl font-extrabold text-white leading-tight drop-shadow-sm">
+              Welcome back, {child.name}! 🦜
+            </h1>
+            <p className="text-orange-100 text-sm mt-1 leading-relaxed">
+              Kòkò is waiting for you.<br />Let&apos;s learn together!
+            </p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="mt-4">
+            <Link href="/literacy"
+              className="inline-flex items-center gap-2 bg-white text-amber-600 font-bold text-sm px-5 py-2.5 rounded-2xl shadow-md hover:bg-amber-50 transition active:scale-95">
+              Start learning →
+            </Link>
+          </motion.div>
+        </div>
+
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
+          className="absolute right-0 bottom-0 w-40 h-52 sm:w-48 sm:h-60">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ami-koko.svg" alt="Àmì and Kòkò" className="w-full h-full object-contain object-bottom" />
+        </motion.div>
+      </div>
+
+      {/* Assignments */}
+      {assignments.length > 0 && (
+        <div className="px-4 mt-6">
+          <h2 className="text-base font-bold text-stone-700 mb-3">📝 This Week&apos;s Assignments</h2>
+          <div className="flex flex-col gap-2">
+            {assignments.map(a => {
+              const done = isCompleted(a.id);
+              return (
+                <motion.div key={a.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl bg-white shadow-sm ring-1 ${done ? "ring-green-200" : "ring-amber-100"}`}>
+                  <span className="text-2xl">{SUBJECT_EMOJIS[a.subject]}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-bold text-sm truncate ${done ? "text-stone-400 line-through" : "text-stone-800"}`}>{a.title}</p>
+                    <p className="text-xs text-stone-400">
+                      {a.content_keys.join(", ")}
+                      {a.due_date ? ` · Due ${new Date(a.due_date).toLocaleDateString()}` : ""}
+                    </p>
+                  </div>
+                  {done ? (
+                    <span className="text-green-500 font-bold text-sm flex-shrink-0">✅ Done</span>
+                  ) : (
+                    <Link href={`/assignment/${a.id}`}
+                      className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
+                      Start →
+                    </Link>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Weekly Challenge */}
+      {(challenge || challengeLoading) && (
+        <div className="px-4 mt-6">
+          <h2 className="text-base font-bold text-stone-700 mb-3">🎯 This Week&apos;s Challenge</h2>
+          <ChallengeCard
+            challenge={challenge}
+            myProgress={myProgress}
+            leaderboard={leaderboard}
+            childId={child.id}
+            loading={challengeLoading}
+          />
+        </div>
+      )}
+
+      {/* Mode cards */}
+      <div className="px-4 mt-6">
+        <h2 className="text-base font-bold text-stone-700 mb-3">What do you want to do today?</h2>
+        <div className="flex flex-col gap-3">
+          {MODES.map((mode, i) => (
+            <motion.div key={mode.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 + i * 0.08 }}>
+              <Link href={mode.href}
+                className={`flex items-center gap-4 p-4 rounded-3xl bg-white shadow-md ${mode.shadow} ring-1 ${mode.ring} transition hover:scale-[1.02] active:scale-[0.98]`}>
+                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${mode.gradient} flex items-center justify-center text-2xl shadow-sm flex-shrink-0`}>
+                  {mode.emoji}
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-stone-800 text-sm">{mode.title}</p>
+                  <p className="text-stone-500 text-xs">{mode.description}</p>
+                </div>
+                <div className="text-stone-300">›</div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Song of the Day */}
+      <div className="px-4 mt-6">
+        <h2 className="text-base font-bold text-stone-700 mb-3">🎵 Song of the Day</h2>
+        <div className="bg-white rounded-3xl shadow-sm ring-1 ring-violet-100 p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-2xl font-extrabold text-white shadow-sm flex-shrink-0">
+              {SOTD_LETTER}
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-stone-800 text-sm">Letter {SOTD_LETTER} Song</p>
+              <p className="text-stone-500 text-xs">Sing along with Kòkò!</p>
+            </div>
+          </div>
+          <SongButton song={SOTD_SONG} label={`🎵 Sing the ${SOTD_LETTER} song`} />
+        </div>
+      </div>
+
+      {/* Quick stats */}
+      <div className="px-4 mt-6">
+        <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100 flex items-center justify-around">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl font-extrabold text-amber-500">{masteredCount}</span>
+            <span className="text-xs text-stone-500">Learnt</span>
+          </div>
+          <div className="w-px h-10 bg-stone-100" />
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl font-extrabold text-green-500">{streak > 0 ? `${streak}🔥` : "0"}</span>
+            <span className="text-xs text-stone-500">Streak</span>
+          </div>
+          <div className="w-px h-10 bg-stone-100" />
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl font-extrabold text-rose-400">{shardsFound}/10</span>
+            <span className="text-xs text-stone-500">Shards</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Parent Home ──────────────────────────────────────────────────────────────
+
+function ParentHome() {
   const supabase = createClient();
   const { children, activeChild, selectChild, refresh, loading: childrenLoading } = useChild();
   const activeChildWithClass = activeChild as ChildWithClass | null;
@@ -108,8 +283,6 @@ export default function HomePage() {
   const { challenge, myProgress, leaderboard, loading: challengeLoading } = useChallenges(activeChildWithClass);
 
   const [userId, setUserId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<"parent" | "school_admin" | null>(null);
-  const [schoolName, setSchoolName] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
@@ -122,53 +295,17 @@ export default function HomePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: profile } = await (supabase as any)
-        .from("profiles")
-        .select("role, school_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setUserRole(profile.role);
-
-        if (profile.role === "school_admin" && profile.school_id) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: school } = await (supabase as any)
-            .from("schools")
-            .select("name")
-            .eq("id", profile.school_id)
-            .single();
-          if (school) setSchoolName(school.name);
-        }
-      }
-
       if (!localStorage.getItem("onboarding_done")) setShowOnboarding(true);
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Show school admin view
-  if (userRole === "school_admin") {
-    return <SchoolAdminHome schoolName={schoolName || "Your School"} />;
-  }
-
-  // Loading state
-  if (userRole === null) {
-    return (
-      <div className="flex flex-col gap-3 pb-10">
-        {[1,2,3].map(i => <div key={i} className="bg-white rounded-3xl h-20 animate-pulse ring-1 ring-stone-100"/>)}
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 pb-24">
 
-        {/* ── Hero card ── */}
+        {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl mx-2 mt-2 bg-gradient-to-br from-amber-400 via-orange-300 to-yellow-300 shadow-xl shadow-amber-200 min-h-[260px]">
           <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white opacity-10" />
           <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white opacity-10" />
@@ -190,7 +327,6 @@ export default function HomePage() {
                 )}
               </div>
 
-              {/* School context badge */}
               {isSchoolChild && activeChildWithClass?.class && (
                 <div className="inline-flex items-center gap-1.5 bg-white/25 rounded-full px-2.5 py-1 mb-2">
                   <span className="text-xs font-bold text-white">
@@ -200,7 +336,6 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Child switcher dropdown */}
               <AnimatePresence>
                 {showSwitcher && (
                   <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -229,7 +364,7 @@ export default function HomePage() {
                 Ready to learn with Kòkò?
               </h1>
               <p className="text-orange-100 text-sm mt-2 leading-relaxed">
-                Kòkò has lost his voice…<br/>help him find it!
+                Kòkò has lost his voice…<br />help him find it!
               </p>
             </motion.div>
 
@@ -244,12 +379,11 @@ export default function HomePage() {
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="absolute right-0 bottom-0 w-44 h-56 sm:w-52 sm:h-64">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/ami-koko.svg" alt="Àmì holding Kòkò the parrot"
-              className="w-full h-full object-contain object-bottom" />
+            <img src="/ami-koko.svg" alt="Àmì holding Kòkò the parrot" className="w-full h-full object-contain object-bottom" />
           </motion.div>
         </div>
 
-        {/* ── Assignments (school children only) ── */}
+        {/* Assignments (school children only) */}
         {isSchoolChild && assignments.length > 0 && (
           <div className="px-4 mt-6">
             <h2 className="text-base font-bold text-stone-700 mb-3">📝 This Week&apos;s Assignments</h2>
@@ -282,7 +416,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Weekly Challenge + Leaderboard (school children only) ── */}
+        {/* Weekly Challenge (school children only) */}
         {isSchoolChild && (challenge || challengeLoading) && (
           <div className="px-4 mt-6">
             <h2 className="text-base font-bold text-stone-700 mb-3">🎯 This Week&apos;s Challenge</h2>
@@ -296,7 +430,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Mode cards ── */}
+        {/* Mode cards */}
         <div className="px-4 mt-6">
           <h2 className="text-base font-bold text-stone-700 mb-3">What do you want to do today?</h2>
           <div className="flex flex-col gap-3">
@@ -319,7 +453,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Song of the Day ── */}
+        {/* Song of the Day */}
         <div className="px-4 mt-6">
           <h2 className="text-base font-bold text-stone-700 mb-3">🎵 Song of the Day</h2>
           <div className="bg-white rounded-3xl shadow-sm ring-1 ring-violet-100 p-4 flex flex-col gap-3">
@@ -336,7 +470,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Quick stats ── */}
+        {/* Quick stats */}
         <div className="px-4 mt-6">
           <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100 flex items-center justify-around">
             <div className="flex flex-col items-center gap-1">
@@ -356,7 +490,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── No child profile banner ── */}
+        {/* No child profile banner — parents only */}
         {!childrenLoading && children.length === 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="px-4 mt-4">
             <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-amber-200 flex items-center gap-3">
@@ -380,7 +514,7 @@ export default function HomePage() {
         {showModal && userId && (
           <CreateChildModal parentId={userId}
             onCreated={() => { setShowModal(false); refresh(); }}
-            onClose={() => setShowModal(false)}/>
+            onClose={() => setShowModal(false)} />
         )}
       </AnimatePresence>
 
@@ -389,9 +523,102 @@ export default function HomePage() {
           <OnboardingFlow onComplete={() => {
             localStorage.setItem("onboarding_done", "1");
             setShowOnboarding(false);
-          }}/>
+          }} />
         )}
       </AnimatePresence>
     </>
   );
+}
+
+// ─── Root page — detects account type and renders correct home ────────────────
+
+export default function HomePage() {
+  const supabase = createClient();
+  const [accountType, setAccountType] = useState<"loading" | "student" | "school_admin" | "parent">("loading");
+  const [studentChild, setStudentChild] = useState<ChildWithClass | null>(null);
+  const [schoolName, setSchoolName] = useState("");
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
+
+  useEffect(() => {
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (isStudentAccount(user.email)) {
+        // Student — load child from localStorage activeChildId
+        const childId = localStorage.getItem("activeChildId");
+        if (!childId) { setAccountType("parent"); return; }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: child } = await (supabase as any)
+          .from("children")
+          .select("*")
+          .eq("id", childId)
+          .single();
+
+        if (child) {
+          setStudentChild(child as ChildWithClass);
+
+          if (child.school_id) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: school } = await (supabase as any)
+              .from("schools")
+              .select("name, subscription_active")
+              .eq("id", child.school_id)
+              .single();
+            if (school) {
+              setSchoolName(school.name);
+              setSubscriptionActive(school.subscription_active ?? false);
+            }
+          }
+        }
+        setAccountType("student");
+        return;
+      }
+
+      // Non-student — check profile role
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profile } = await (supabase as any)
+        .from("profiles")
+        .select("role, school_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.role === "school_admin" && profile.school_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: school } = await (supabase as any)
+          .from("schools")
+          .select("name, subscription_active")
+          .eq("id", profile.school_id)
+          .single();
+        if (school) {
+          setSchoolName(school.name);
+          setSubscriptionActive(school.subscription_active ?? false);
+        }
+        setAccountType("school_admin");
+      } else {
+        setAccountType("parent");
+      }
+    }
+    init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (accountType === "loading") {
+    return (
+      <div className="flex flex-col gap-3 pb-10">
+        {[1,2,3].map(i => <div key={i} className="bg-white rounded-3xl h-20 animate-pulse ring-1 ring-stone-100"/>)}
+      </div>
+    );
+  }
+
+  if (accountType === "school_admin") {
+    return <SchoolAdminHome schoolName={schoolName || "Your School"} subscriptionActive={subscriptionActive} />;
+  }
+
+  if (accountType === "student" && studentChild) {
+    return <StudentHome child={studentChild} schoolName={schoolName} />;
+  }
+
+  return <ParentHome />;
 }

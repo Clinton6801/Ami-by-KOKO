@@ -5,14 +5,17 @@ import { useChild } from "@/hooks/useChild";
 import { useProgress } from "@/hooks/useProgress";
 import { useStreak } from "@/hooks/useStreak";
 import { useCertificates } from "@/hooks/useCertificates";
+import { useAssignments } from "@/hooks/useAssignments";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { isStudentAccount } from "@/lib/access";
 import { LETTER_DATA } from "@/lib/audio/clips";
 import { WORLD_CATEGORIES, WORLD_ITEMS } from "@/lib/content/world";
 import EditChildModal from "@/components/ui/EditChildModal";
 import Certificate from "@/components/ui/Certificate";
-import type { Child, CertificateType } from "@/types";
-import { CERTIFICATE_CONFIGS } from "@/types";
+import type { Child, CertificateType, ChildWithClass } from "@/types";
+import { CERTIFICATE_CONFIGS, CLASS_LABELS } from "@/types";
 
 const ALPHABET = Object.keys(LETTER_DATA);
 const NUMBERS = ["1","2","3","4","5","6","7","8","9","10"];
@@ -52,9 +55,10 @@ function CertificateCard({ type, earnedAt, onView }: {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ParentDashboardPage() {
+  const supabase = createClient();
   const { children, activeChild, selectChild, updateChild, loading: childrenLoading } = useChild();
+  const activeChildWithClass = activeChild as ChildWithClass | null;
   const {
-    progress,
     literacyProgress,
     numeracyProgress,
     worldProgress,
@@ -69,14 +73,46 @@ export default function ParentDashboardPage() {
 
   const { streak } = useStreak(activeChild?.id);
   const { certificates, loading: certsLoading, awardCertificate } = useCertificates(activeChild?.id ?? null);
+  const { assignments, isCompleted } = useAssignments(activeChildWithClass);
 
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [showCertificate, setShowCertificate] = useState<CertificateType | null>(null);
+  const [isStudent, setIsStudent] = useState(false);
+  const [schoolName, setSchoolName] = useState<string | null>(null);
 
   const totalLetters = ALPHABET.length;
   const pct = Math.round((masteredCount / totalLetters) * 100);
   const numPct = Math.round((masteredNumbers.length / NUMBERS.length) * 100);
   const worldPct = Math.round((masteredWorldItems.length / TOTAL_WORLD) * 100);
+
+  // Detect student account and load school name
+  useEffect(() => {
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const student = isStudentAccount(user.email);
+      setIsStudent(student);
+    }
+    init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load school name when activeChild has a school_id
+  useEffect(() => {
+    if (!activeChild) return;
+    const child = activeChild as ChildWithClass;
+    if (!child.school_id) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from("schools")
+      .select("name")
+      .eq("id", child.school_id)
+      .single()
+      .then(({ data }: { data: { name: string } | null }) => {
+        if (data) setSchoolName(data.name);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChild?.id]);
 
   // Milestone → award + show cert
   useEffect(() => {
@@ -94,7 +130,25 @@ export default function ParentDashboardPage() {
 
   return (
     <div className="flex flex-col gap-5 pb-10">
-      <h1 className="text-2xl font-extrabold text-stone-800">Dashboard</h1>
+      <h1 className="text-2xl font-extrabold text-stone-800">
+        {isStudent ? "My Progress" : "Dashboard"}
+      </h1>
+
+      {/* Student context badge */}
+      {isStudent && activeChild && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-2xl">{activeChild.avatar_url ?? "🧒🏾"}</span>
+          <div>
+            <p className="font-bold text-stone-800">{activeChild.name}</p>
+            {schoolName && (
+              <p className="text-xs text-stone-500">
+                🏫 {schoolName}
+                {(activeChild as ChildWithClass).class ? ` · ${CLASS_LABELS[(activeChild as ChildWithClass).class!]}` : ""}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Loading skeleton */}
       {childrenLoading && (
@@ -103,8 +157,8 @@ export default function ParentDashboardPage() {
         </div>
       )}
 
-      {/* Child switcher */}
-      {!childrenLoading && children.length > 0 && (
+      {/* Child switcher — parents only */}
+      {!isStudent && !childrenLoading && children.length > 0 && (
         <div className="flex gap-2 flex-wrap items-center">
           {children.map(child => (
             <button key={child.id} onClick={() => selectChild(child)}
@@ -123,7 +177,7 @@ export default function ParentDashboardPage() {
         </div>
       )}
 
-      {!childrenLoading && !activeChild ? (
+      {!isStudent && !childrenLoading && !activeChild ? (
         <div className="bg-white rounded-3xl p-6 text-center shadow-sm ring-1 ring-stone-100">
           <p className="text-stone-500 mb-3">No child profile yet.</p>
           <Link href="/home" className="text-amber-600 font-semibold text-sm hover:underline">Add a child profile →</Link>
@@ -280,14 +334,46 @@ export default function ParentDashboardPage() {
             )}
           </div>
 
-          {/* Subscription */}
-          <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
-            <p className="text-sm font-bold text-stone-700 mb-2">Subscription</p>
-            <p className="text-stone-500 text-sm">Free plan — English phonics included.</p>
-            <Link href="/settings" className="inline-flex items-center gap-1 mt-2 text-amber-600 font-semibold text-sm hover:underline">
-              Upgrade to unlock Yorùbá →
-            </Link>
-          </div>
+          {/* Subscription — parents only */}
+          {!isStudent && (
+            <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
+              <p className="text-sm font-bold text-stone-700 mb-2">Subscription</p>
+              <p className="text-stone-500 text-sm">Free plan — English phonics included.</p>
+              <Link href="/settings" className="inline-flex items-center gap-1 mt-2 text-amber-600 font-semibold text-sm hover:underline">
+                Upgrade to unlock Yorùbá →
+              </Link>
+            </div>
+          )}
+
+          {/* Assignment history — students only */}
+          {isStudent && assignments.length > 0 && (
+            <div className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-stone-100">
+              <p className="text-sm font-bold text-stone-700 mb-3">📝 My Assignments</p>
+              <div className="flex flex-col gap-2">
+                {assignments.map(a => {
+                  const done = isCompleted(a.id);
+                  return (
+                    <div key={a.id} className={`flex items-center gap-3 p-3 rounded-2xl ring-1 ${done ? "bg-green-50 ring-green-200" : "bg-stone-50 ring-stone-100"}`}>
+                      <span className="text-xl">{done ? "✅" : "📋"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-semibold text-sm truncate ${done ? "text-stone-400 line-through" : "text-stone-800"}`}>{a.title}</p>
+                        <p className="text-xs text-stone-400">
+                          {a.content_keys.join(", ")}
+                          {a.due_date ? ` · Due ${new Date(a.due_date).toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                      {!done && (
+                        <Link href={`/assignment/${a.id}`}
+                          className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                          Start →
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 

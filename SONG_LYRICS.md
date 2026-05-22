@@ -74,11 +74,11 @@ Kòkò loves Fufu every single day!
 
 ### G — Garri (Garri)
 
+
 G is for Garri, Garri, Garri
 G is for Garri, now you know the sound
 Guh — Guh — Guh says the letter G
 Kòkò loves Garri every single day!
-
 ---
 
 ### H — Harmattan (Dry season wind)

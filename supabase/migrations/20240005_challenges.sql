@@ -10,7 +10,7 @@ create table if not exists public.challenges (
   class        text,
   title        text        not null,
   description  text,
-  metric       text        check (metric in ('letters_mastered','assignments_complete','sessions')),
+  metric       text       CONTINUE check (metric in ('letters_mastered','assignments_complete','sessions')),
   target_count int         not null,
   week_start   date        not null,
   week_end     date        not null,
