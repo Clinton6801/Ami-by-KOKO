@@ -8,12 +8,145 @@ import { useAccess } from "@/hooks/useAccess";
 import CreateChildModal from "@/components/ui/CreateChildModal";
 import { AnimatePresence } from "framer-motion";
 import { openPaystackPopup, generateReference, PAYSTACK_PLANS } from "@/lib/paystack/client";
+import { CLASS_LABELS, type ClassLevel } from "@/types";
+
+// ─── Student settings view ────────────────────────────────────────────────────
+
+interface StudentInfo {
+  name: string;
+  avatarUrl: string | null;
+  class: ClassLevel | null;
+  schoolName: string | null;
+  schoolSubscriptionActive: boolean;
+}
+
+function StudentSettings({ student }: { student: StudentInfo }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const classLabel = student.class ? CLASS_LABELS[student.class] : null;
+  const schoolDisplay = [student.schoolName, classLabel].filter(Boolean).join(" · ");
+
+  async function handleSwitchStudent() {
+    setSigningOut(true);
+    await supabase.auth.signOut();
+    if (typeof window !== "undefined") localStorage.removeItem("activeChildId");
+    router.push("/student-login");
+  }
+
+  return (
+    <div className="flex flex-col gap-5 pb-10">
+      <h1 className="text-2xl font-extrabold text-stone-800">Settings</h1>
+
+      {/* Account — student identity, no system email */}
+      <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+        <h2 className="font-bold text-stone-700 mb-3">Account</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-4xl">{student.avatarUrl ?? "🧒🏾"}</span>
+          <div>
+            <p className="font-bold text-stone-800">{student.name}</p>
+            {schoolDisplay && (
+              <p className="text-xs text-stone-500 mt-0.5">🏫 {schoolDisplay}</p>
+            )}
+          </div>
+        </div>
+
+        <button
+          onClick={handleSwitchStudent}
+          disabled={signingOut}
+          className="flex items-center gap-2 text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 px-4 py-2.5 rounded-2xl transition disabled:opacity-60"
+        >
+          🔄 {signingOut ? "Switching…" : "Switch student"}
+        </button>
+      </section>
+
+      {/* School account — replaces subscription section */}
+      <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+        <h2 className="font-bold text-stone-700 mb-3">🏫 School Account</h2>
+        <p className="text-sm text-stone-600 leading-relaxed">
+          Your access is managed by{" "}
+          <span className="font-semibold text-stone-800">{student.schoolName ?? "your school"}</span>.
+        </p>
+        <p className="text-sm text-stone-500 mt-2">
+          Ask your teacher if anything is locked.
+        </p>
+      </section>
+
+      {/* Language packs — no pricing text */}
+      <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+        <h2 className="font-bold text-stone-700 mb-3">Language Packs</h2>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-2xl ring-1 ring-green-200">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🇬🇧</span>
+              <div>
+                <p className="font-semibold text-stone-800 text-sm">English</p>
+                <p className="text-xs text-stone-500">
+                  {student.schoolSubscriptionActive ? "Full A–Z" : "A–F available"}
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+              {student.schoolSubscriptionActive ? "Full ✓" : "Free ✓"}
+            </span>
+          </div>
+
+          <div className={`flex items-center justify-between p-3 rounded-2xl ring-1 ${
+            student.schoolSubscriptionActive ? "bg-green-50 ring-green-200" : "bg-stone-50 ring-stone-200"
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🇳🇬</span>
+              <div>
+                <p className="font-semibold text-stone-800 text-sm">Yorùbá</p>
+                <p className="text-xs text-stone-500">
+                  {student.schoolSubscriptionActive
+                    ? "Available with school plan"
+                    : "Ask your teacher to unlock"}
+                </p>
+              </div>
+            </div>
+            <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+              student.schoolSubscriptionActive
+                ? "text-green-700 bg-green-100"
+                : "text-stone-400 bg-stone-100"
+            }`}>
+              {student.schoolSubscriptionActive ? "Soon ✓" : "🔒"}
+            </span>
+          </div>
+
+          {["Igbo", "Hausa"].map(lang => (
+            <div key={lang} className="flex items-center justify-between p-3 bg-stone-50 rounded-2xl ring-1 ring-stone-100 opacity-60">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🇳🇬</span>
+                <div>
+                  <p className="font-semibold text-stone-800 text-sm">{lang}</p>
+                  <p className="text-xs text-stone-400">Coming soon</p>
+                </div>
+              </div>
+              <span className="text-xs text-stone-400 bg-stone-100 px-2 py-1 rounded-full">Soon</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* About */}
+      <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+        <h2 className="font-bold text-stone-700 mb-3">About</h2>
+        <p className="text-sm text-stone-500">Àmì by Kòkò — v0.1.0 MVP</p>
+        <p className="text-xs text-stone-400 mt-1">Made with ❤️ for Nigerian children.</p>
+      </section>
+    </div>
+  );
+}
+
+// ─── Main settings page ───────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
   const { children, activeChild, selectChild } = useChild();
-  const { hasPaid } = useAccess(activeChild);
+  const { hasPaid, isStudent } = useAccess(activeChild);
   const [showAddChild, setShowAddChild] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -25,6 +158,7 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
   const [subPlan, setSubPlan] = useState<string | null>(null);
   const [subExpiry, setSubExpiry] = useState<string | null>(null);
+  const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -32,6 +166,31 @@ export default function SettingsPage() {
       setUserId(user.id);
       setUserEmail(user.email ?? null);
 
+      const studentAccount = user.email?.endsWith("@amibykoko.app") ?? false;
+
+      if (studentAccount) {
+        // Load student's child record + school
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase as any)
+          .from("children")
+          .select("name, avatar_url, class, school_id, schools(name, subscription_active)")
+          .eq("auth_user_id", user.id)
+          .limit(1)
+          .single();
+
+        if (data) {
+          setStudentInfo({
+            name: data.name,
+            avatarUrl: data.avatar_url ?? null,
+            class: data.class ?? null,
+            schoolName: data.schools?.name ?? null,
+            schoolSubscriptionActive: data.schools?.subscription_active ?? false,
+          });
+        }
+        return; // don't load parent/admin data
+      }
+
+      // Parent / school admin
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: profile } = await (supabase as any)
         .from("profiles")
@@ -66,6 +225,21 @@ export default function SettingsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Render student view as soon as we know it's a student
+  if (isStudent && studentInfo) {
+    return <StudentSettings student={studentInfo} />;
+  }
+
+  // Loading state for student (isStudent true but studentInfo not yet loaded)
+  if (isStudent && !studentInfo) {
+    return (
+      <div className="flex flex-col gap-3 pb-10">
+        <div className="h-8 w-32 bg-stone-200 rounded-full animate-pulse" />
+        {[1,2,3].map(i => <div key={i} className="bg-white rounded-3xl h-24 animate-pulse ring-1 ring-stone-100" />)}
+      </div>
+    );
+  }
+
   async function savePhone() {
     if (!userId) return;
     setSavingPhone(true);
@@ -90,13 +264,12 @@ export default function SettingsPage() {
       amount: plan.amount,
       reference: generateReference(plan.id),
       planId: plan.id,
-      onSuccess: () => {
-        setTimeout(() => window.location.reload(), 1500);
-      },
+      onSuccess: () => { setTimeout(() => window.location.reload(), 1500); },
       onClose: () => {},
     });
   }
 
+  // ── Parent / school admin view (unchanged) ──────────────────────────────────
   return (
     <>
       <div className="flex flex-col gap-5 pb-10">
@@ -111,7 +284,7 @@ export default function SettingsPage() {
             </p>
           )}
 
-          {/* WhatsApp number */}
+          {/* WhatsApp number — parents only */}
           <div className="mb-4">
             <label className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-1 block">
               WhatsApp number
@@ -124,11 +297,8 @@ export default function SettingsPage() {
                 placeholder="+234 801 234 5678"
                 className="flex-1 rounded-2xl border border-stone-200 px-4 py-2.5 text-stone-900 placeholder-stone-400 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
-              <button
-                onClick={savePhone}
-                disabled={savingPhone}
-                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-2xl transition disabled:opacity-60"
-              >
+              <button onClick={savePhone} disabled={savingPhone}
+                className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-2xl transition disabled:opacity-60">
                 {phoneSaved ? "✓ Saved" : savingPhone ? "…" : "Save"}
               </button>
             </div>
@@ -141,45 +311,46 @@ export default function SettingsPage() {
           </button>
         </section>
 
-        {/* Child profiles */}
-        <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
-          <h2 className="font-bold text-stone-700 mb-3">Child Profiles</h2>
-          <div className="flex flex-col gap-2">
-            {children.map(child => (
-              <div key={child.id}
-                className={`flex items-center justify-between p-3 rounded-2xl transition cursor-pointer ${
-                  activeChild?.id === child.id ? "bg-amber-50 ring-1 ring-amber-200" : "bg-stone-50 hover:bg-amber-50"
-                }`}
-                onClick={() => selectChild(child)}>
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{child.avatar_url ?? "🧒🏾"}</span>
-                  <div>
-                    <p className="font-semibold text-stone-800 text-sm">{child.name}</p>
-                    {child.age && <p className="text-xs text-stone-400">Age {child.age}</p>}
+        {/* Child profiles — parents only */}
+        {userRole !== "school_admin" && (
+          <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
+            <h2 className="font-bold text-stone-700 mb-3">Child Profiles</h2>
+            <div className="flex flex-col gap-2">
+              {children.map(child => (
+                <div key={child.id}
+                  className={`flex items-center justify-between p-3 rounded-2xl transition cursor-pointer ${
+                    activeChild?.id === child.id ? "bg-amber-50 ring-1 ring-amber-200" : "bg-stone-50 hover:bg-amber-50"
+                  }`}
+                  onClick={() => selectChild(child)}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{child.avatar_url ?? "🧒🏾"}</span>
+                    <div>
+                      <p className="font-semibold text-stone-800 text-sm">{child.name}</p>
+                      {child.age && <p className="text-xs text-stone-400">Age {child.age}</p>}
+                    </div>
                   </div>
+                  {activeChild?.id === child.id && (
+                    <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Active</span>
+                  )}
                 </div>
-                {activeChild?.id === child.id && (
-                  <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Active</span>
-                )}
-              </div>
-            ))}
-          </div>
-          {userId && (
-            <button onClick={() => setShowAddChild(true)}
-              className="mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 py-3 rounded-2xl transition">
-              ➕ Add child profile
-            </button>
-          )}
-        </section>
+              ))}
+            </div>
+            {userId && (
+              <button onClick={() => setShowAddChild(true)}
+                className="mt-3 w-full flex items-center justify-center gap-2 text-sm font-semibold text-amber-600 bg-amber-50 hover:bg-amber-100 py-3 rounded-2xl transition">
+                ➕ Add child profile
+              </button>
+            )}
+          </section>
+        )}
 
-        {/* Subscription — different for school admins vs parents */}
+        {/* Subscription */}
         <section className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-stone-100">
           <h2 className="font-bold text-stone-700 mb-3">
             {userRole === "school_admin" ? "School Plan" : "Subscription"}
           </h2>
 
           {userRole === "school_admin" ? (
-            /* ── School admin plan summary ── */
             <div className="flex flex-col gap-3">
               {schoolInfo ? (
                 <>
@@ -208,7 +379,6 @@ export default function SettingsPage() {
               )}
             </div>
           ) : hasPaid ? (
-            /* ── Active parent plan ── */
             <div className="flex flex-col gap-3">
               <div className="bg-green-50 rounded-2xl p-4 ring-1 ring-green-200">
                 <div className="flex items-center justify-between mb-2">
@@ -231,7 +401,6 @@ export default function SettingsPage() {
               )}
             </div>
           ) : (
-            /* ── Free parent plan ── */
             <div className="flex flex-col gap-4">
               <div className="bg-stone-50 rounded-2xl p-4 ring-1 ring-stone-200">
                 <p className="font-bold text-stone-700 text-sm mb-2">Current plan: Free</p>
