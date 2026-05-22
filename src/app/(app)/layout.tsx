@@ -1,10 +1,14 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { isStudentAccount } from '@/lib/access'
 import type { Profile } from '@/types'
 import AppNav from '@/components/ui/AppNav'
 import BottomNav from '@/components/ui/BottomNav'
 import ErrorBoundaryWrapper from '@/components/ui/ErrorBoundaryWrapper'
+
+/** Inline check — avoids importing from a module shared with client components */
+function isStudentEmail(email?: string | null): boolean {
+  return email?.endsWith('@amibykoko.app') ?? false
+}
 
 export default async function AppLayout({
   children,
@@ -20,7 +24,7 @@ export default async function AppLayout({
 
   let profile: Profile;
 
-  if (isStudentAccount(user.email)) {
+  if (isStudentEmail(user.email)) {
     // ── Student account ──────────────────────────────────────────────────────
     // Fetch the child record by auth_user_id — works on any device, no localStorage.
     const { data: child } = await supabase

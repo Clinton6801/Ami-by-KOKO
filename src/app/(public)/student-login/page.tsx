@@ -4,17 +4,17 @@
  * Student login page — designed for children aged 1–6 in a classroom.
  *
  * Flow:
- * 1. Enter school code (e.g. AMIK-0042)
+ * 1. Enter school code (e.g. SOW-0001)
  * 2. See class list for that school → tap your name
  * 3. Enter 4-digit PIN on a big number pad
  * 4. Logged in via Supabase Auth → /home (works on any device)
  *
- * No keyboard required. All tap targets ≥ 64×64px.
+ * Auth strategy:
+ *   email:    student_{childId}@amibykoko.app
+ *   password: {SCHOOL_CODE}-{PIN}   e.g. SOW-0001-1234
  *
- * Auth strategy: each student has a Supabase Auth account with
- * synthetic email {child_id}@students.amibykoko.com and
- * password {school_id}-{pin}. The login UI never exposes this —
- * the child only ever sees school code + name + PIN.
+ * The school code (not the UUID) is used in the password — this is what
+ * the API uses when creating auth accounts.
  */
 
 import { useState } from "react";
@@ -29,14 +29,20 @@ type Step = "school_code" | "pick_name" | "enter_pin";
 function SchoolCodeStep({
   onNext,
 }: {
-  onNext: (code: string, schoolId: string, students: ChildWithClass[], schoolName: string, logoUrl: string | null) => void;
+  onNext: (
+    schoolCode: string,
+    schoolId: string,
+    students: ChildWithClass[],
+    schoolName: string,
+    logoUrl: string | null
+  ) => void;
 }) {
   const supabase = createClient();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) return;
@@ -46,7 +52,7 @@ function SchoolCodeStep({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: school, error: schoolErr } = await (supabase as any)
       .from("schools")
-      .select("id, name, school_code, logo_url, brand_color")
+      .select("id, name, school_code, logo_url")
       .eq("school_code", trimmed)
       .single();
 
@@ -69,7 +75,8 @@ function SchoolCodeStep({
       return;
     }
 
-    onNext(trimmed, school.id, students as ChildWithClass[], school.name, school.logo_url ?? null);
+    // Pass the school_code string (e.g. "SOW-0001"), not the UUID
+    onNext(school.school_code as string, school.id, students as ChildWithClass[], school.name, school.logo_url ?? null);
     setLoading(false);
   }
 
@@ -89,8 +96,8 @@ function SchoolCodeStep({
           type="text"
           value={code}
           onChange={e => setCode(e.target.value.toUpperCase())}
-          placeholder="e.g. AMIK-0042"
-          maxLength={10}
+          placeholder="e.g. SOW-0001"
+          maxLength={12}
           className="w-full text-center text-2xl font-bold tracking-widest rounded-2xl border-2 border-amber-200 px-4 py-4 text-stone-900 placeholder-stone-300 focus:outline-none focus:border-amber-400 uppercase"
           autoCapitalize="characters"
           autoCorrect="off"
@@ -168,17 +175,16 @@ function PickNameStep({
 
 function PinStep({
   student,
-  schoolId,
+  schoolCode,
   onBack,
 }: {
   student: ChildWithClass;
-  schoolId: string;
+  schoolCode: string;   // e.g. "SOW-0001" — used in password, NOT the UUID
   onBack: () => void;
 }) {
   const supabase = createClient();
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("Wrong number, try again!");
   const [shaking, setShaking] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -186,11 +192,7 @@ function PinStep({
 
   async function handleDigit(d: string) {
     if (loading) return;
-    if (d === "⌫") {
-      setPin(p => p.slice(0, -1));
-      setError(false);
-      return;
-    }
+    if (d === "⌫") { setPin(p => p.slice(0, -1)); setError(false); return; }
     if (d === "") return;
     if (pin.length >= 4) return;
 
@@ -201,24 +203,21 @@ function PinStep({
     if (next.length === 4) {
       setLoading(true);
 
-      // Sign in via Supabase Auth — synthetic email + school-scoped password
+      // Password format must exactly match what the API created:
+      //   studentPassword(schoolCode, pin) = `${schoolCode.toUpperCase()}-${pin}`
+      // schoolCode is already uppercase (typed by user / returned from DB)
       const email = `student_${student.id}@amibykoko.app`;
-      const password = `${schoolId.toUpperCase()}-${next}`;
+      const password = `${schoolCode}-${next}`;
 
-      const { data, error: signInErr } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
 
       if (!signInErr && data.session) {
-        // No localStorage needed — useChild fetches by auth_user_id from DB
         window.location.href = "/home";
         return;
       }
 
-      // Wrong PIN (or no auth account yet — admin needs to run Fix Student Logins)
+      // Wrong PIN or auth account not yet created (admin needs to run Fix Student Logins)
       setError(true);
-      setErrorMsg("Wrong PIN. Try again!");
       setShaking(true);
       setLoading(false);
       setTimeout(() => { setPin(""); setShaking(false); }, 600);
@@ -244,8 +243,7 @@ function PinStep({
         className="flex gap-4"
       >
         {[0,1,2,3].map(i => (
-          <div
-            key={i}
+          <div key={i}
             className={`w-5 h-5 rounded-full border-2 transition-colors ${
               i < pin.length
                 ? error ? "bg-red-400 border-red-400" : "bg-amber-500 border-amber-500"
@@ -256,7 +254,7 @@ function PinStep({
       </motion.div>
 
       {error && (
-        <p className="text-red-500 text-sm font-semibold">{errorMsg}</p>
+        <p className="text-red-500 text-sm font-semibold">Wrong PIN. Try again!</p>
       )}
 
       {/* Number pad */}
@@ -278,9 +276,7 @@ function PinStep({
             style={{ minHeight: 64, minWidth: 64 }}
             aria-label={d === "⌫" ? "Delete" : d === "" ? "" : `Number ${d}`}
           >
-            {loading && pin.length === 4 ? (
-              <span className="text-base animate-pulse">…</span>
-            ) : d}
+            {loading && pin.length === 4 ? <span className="text-base animate-pulse">…</span> : d}
           </button>
         ))}
       </div>
@@ -296,8 +292,7 @@ function PinStep({
 
 export default function StudentLoginPage() {
   const [step, setStep] = useState<Step>("school_code");
-  const [schoolCode, setSchoolCode] = useState("");
-  const [schoolId, setSchoolId] = useState("");
+  const [schoolCode, setSchoolCode] = useState("");   // e.g. "SOW-0001"
   const [schoolName, setSchoolName] = useState("");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [students, setStudents] = useState<ChildWithClass[]>([]);
@@ -306,7 +301,6 @@ export default function StudentLoginPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 flex flex-col items-center justify-start px-4 pt-8 pb-12">
 
-      {/* Header — shows school branding after code entry, default otherwise */}
       <div className="flex flex-col items-center gap-2 mb-8">
         {schoolLogo ? (
           <div className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-amber-200 shadow-md">
@@ -325,14 +319,12 @@ export default function StudentLoginPage() {
         <p className="text-stone-500 text-sm">Student Login</p>
       </div>
 
-      {/* Step content */}
       <AnimatePresence mode="wait">
         {step === "school_code" && (
           <SchoolCodeStep
             key="school_code"
-            onNext={(code, sid, studs, name, logo) => {
-              setSchoolCode(code);
-              setSchoolId(sid);
+            onNext={(code, _sid, studs, name, logo) => {
+              setSchoolCode(code);          // store the code string, not the UUID
               setStudents(studs);
               setSchoolName(name);
               setSchoolLogo(logo);
@@ -345,10 +337,7 @@ export default function StudentLoginPage() {
           <PickNameStep
             key="pick_name"
             students={students}
-            onNext={student => {
-              setSelectedStudent(student);
-              setStep("enter_pin");
-            }}
+            onNext={student => { setSelectedStudent(student); setStep("enter_pin"); }}
             onBack={() => setStep("school_code")}
           />
         )}
@@ -357,7 +346,7 @@ export default function StudentLoginPage() {
           <PinStep
             key="enter_pin"
             student={selectedStudent}
-            schoolId={schoolId}
+            schoolCode={schoolCode}       // pass the code string, not the UUID
             onBack={() => setStep("pick_name")}
           />
         )}
