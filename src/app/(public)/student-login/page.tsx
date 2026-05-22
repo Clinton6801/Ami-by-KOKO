@@ -211,7 +211,7 @@ function PinStep({
       });
 
       if (!signInErr && data.session) {
-        localStorage.setItem("activeChildId", student.id);
+        // No localStorage needed — useChild fetches by auth_user_id from DB
         window.location.href = "/home";
         return;
       }

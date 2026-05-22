@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { isStudentAccount } from "@/lib/access";
 import type { Child } from "@/types";
 
 export function useChild() {
@@ -16,42 +17,61 @@ export function useChild() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    // Check user role from metadata
-    const role = user.user_metadata?.role;
-
-    if (role === "student") {
-      // Student auth — fetch the single child linked to this auth account
-      const childId = user.user_metadata?.child_id;
-      if (!childId) { setLoading(false); return; }
-
+    if (isStudentAccount(user.email)) {
+      // ── Student account ──────────────────────────────────────────────────
+      // Primary: query by auth_user_id — works on any device, no localStorage needed.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error: fetchErr } = await (supabase as any)
         .from("children")
         .select("*")
-        .eq("id", childId)
+        .eq("auth_user_id", user.id)
+        .limit(1)
         .single();
 
-      if (error) {
-        setError(error.message);
-      } else if (data) {
+      if (!fetchErr && data) {
         const kid = data as Child;
         setChildren([kid]);
         setActiveChild(kid);
+        // Keep localStorage in sync as a convenience cache (not source of truth)
         if (typeof window !== "undefined") {
           localStorage.setItem("activeChildId", kid.id);
         }
+      } else {
+        // Fallback: try localStorage if DB query failed (e.g. RLS not yet applied)
+        const childId = typeof window !== "undefined"
+          ? localStorage.getItem("activeChildId")
+          : null;
+
+        if (childId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: fallback } = await (supabase as any)
+            .from("children")
+            .select("*")
+            .eq("id", childId)
+            .single();
+
+          if (fallback) {
+            const kid = fallback as Child;
+            setChildren([kid]);
+            setActiveChild(kid);
+          } else {
+            setError(fetchErr?.message ?? "Could not load student record.");
+          }
+        } else {
+          setError(fetchErr?.message ?? "Could not load student record.");
+        }
       }
     } else {
-      // Parent or school admin — fetch children by parent_id
+      // ── Parent or school admin ───────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error: fetchErr } = await (supabase as any)
         .from("children")
         .select("*")
         .eq("parent_id", user.id)
         .order("created_at", { ascending: true });
 
-      if (error) {
-        setError(error.message);
+      if (fetchErr) {
+        setError(fetchErr.message);
       } else {
         const kids = (data ?? []) as Child[];
         setChildren(kids);

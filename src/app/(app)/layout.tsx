@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { isStudentAccount } from '@/lib/access'
 import type { Profile } from '@/types'
 import AppNav from '@/components/ui/AppNav'
 import BottomNav from '@/components/ui/BottomNav'
@@ -13,35 +14,43 @@ export default async function AppLayout({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  let profile: Profile;
-
   if (!user) {
     redirect('/auth/login')
-  } else {
-    // Detect student accounts by synthetic email domain
-    const isStudent = user.email?.endsWith('@amibykoko.app') ?? false;
+  }
 
-    if (isStudent) {
-      profile = {
-        id: user.id,
-        role: "parent",
-        full_name: "Student",
-        school_id: user.user_metadata?.school_id ?? null,
-        created_at: user.created_at ?? new Date().toISOString(),
-      };
-    } else {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single<Profile>()
+  let profile: Profile;
 
-      if (!profileData) {
-        redirect('/auth/login')
-      }
+  if (isStudentAccount(user.email)) {
+    // ── Student account ──────────────────────────────────────────────────────
+    // Fetch the child record by auth_user_id — works on any device, no localStorage.
+    const { data: child } = await supabase
+      .from('children')
+      .select('id, name, school_id')
+      .eq('auth_user_id', user.id)
+      .limit(1)
+      .returns<{ id: string; name: string; school_id: string | null }[]>()
+      .single()
 
-      profile = profileData;
+    profile = {
+      id: user.id,
+      role: 'parent',                          // treated as parent for nav/layout purposes
+      full_name: child?.name ?? 'Student',
+      school_id: child?.school_id ?? user.user_metadata?.school_id ?? null,
+      created_at: user.created_at ?? new Date().toISOString(),
     }
+  } else {
+    // ── Parent or school admin ───────────────────────────────────────────────
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single<Profile>()
+
+    if (!profileData) {
+      redirect('/auth/login')
+    }
+
+    profile = profileData
   }
 
   return (
