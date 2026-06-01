@@ -16,6 +16,10 @@
  */
 
 import type { Subscription } from "@/types";
+import { isLetterFree, isNumberFree, isCategoryFree, isShardFree, isPadFree } from "./access-utils";
+
+// Re-export pure utility functions so existing imports still work
+export { isLetterFree, isNumberFree, isCategoryFree, isShardFree, isPadFree };
 
 /**
  * Returns true if the email belongs to a student account.
@@ -46,31 +50,4 @@ export function hasPaidAccess(ctx: AccessContext): boolean {
   // Active parent subscription
   if (ctx.subscription?.active) return true;
   return false;
-}
-
-// ─── Per-feature free checks ──────────────────────────────────────────────────
-
-/** Letters A–F are free; G–Z require paid access */
-export function isLetterFree(letter: string): boolean {
-  return ["a","b","c","d","e","f"].includes(letter.toLowerCase());
-}
-
-/** Numbers 1–3 are free; 4–10 require paid access */
-export function isNumberFree(num: number | string): boolean {
-  return [1, 2, 3].includes(Number(num));
-}
-
-/** Body Parts category is free; all others require paid access */
-export function isCategoryFree(category: string): boolean {
-  return category === "body";
-}
-
-/** First 3 story shards (index 0–2) are free */
-export function isShardFree(index: number): boolean {
-  return index < 3;
-}
-
-/** First 3 DJ pads (index 0–2) are free */
-export function isPadFree(index: number): boolean {
-  return index < 3;
 }

@@ -7,7 +7,7 @@ import { MVP_LANGUAGES, type Language } from "@/types";
 import { LETTER_DATA } from "@/lib/audio/clips";
 import LetterDetail from "@/components/phonics/LetterDetail";
 import { getAccessContext } from "@/lib/supabase/getAccessContext";
-import { isLetterFree } from "@/lib/access";
+import { isLetterFree } from "@/lib/access-utils";
 
 interface Props {
   params: Promise<{ language: string; letter: string }>;
