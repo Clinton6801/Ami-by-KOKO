@@ -9,7 +9,7 @@ import { LETTER_DATA } from "@/lib/audio/clips";
 import { useProgress } from "@/hooks/useProgress";
 import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
-import { isLetterFree } from "@/lib/access";
+import { isLetterFree } from "@/lib/access-utils";
 import UpgradePrompt from "@/components/ui/UpgradePrompt";
 import LockedOverlay from "@/components/ui/LockedOverlay";
 
@@ -31,7 +31,7 @@ export default function PhonicsGridPage({ params }: Props) {
   if (!MVP_LANGUAGES.includes(language as Language)) notFound();
 
   const lang = language as Language;
-  const alphabet = Object.values(LETTER_DATA);
+  const alphabet = Object.values(LETTER_DATA[lang]);
   const { activeChild, loading: childLoading } = useChild();
   const { masteredLetters } = useProgress(activeChild?.id ?? null, lang);
   const { hasPaid, loading: accessLoading, isStudent } = useAccess(activeChild);
@@ -63,7 +63,7 @@ export default function PhonicsGridPage({ params }: Props) {
           <p className="text-stone-500 text-sm mt-1">Tap a letter — hear Kòkò say it! 🦜</p>
           {masteredLetters.length > 0 && (
             <p className="text-green-600 text-xs font-semibold mt-1">
-              ⭐ {masteredLetters.length}/26 mastered
+              ⭐ {masteredLetters.length}/{alphabet.length} mastered
             </p>
           )}
           {!hasPaid && !isStudent && (
@@ -84,7 +84,7 @@ export default function PhonicsGridPage({ params }: Props) {
             const colour = CARD_COLOURS[i % CARD_COLOURS.length];
             const word = lang === "yoruba" ? data.localWord : data.englishWord;
             const mastered = masteredLetters.includes(data.letter);
-            const locked = !hasPaid && !isLetterFree(data.letter);
+            const locked = !hasPaid && !isLetterFree(data.letter, lang);
 
             if (locked) {
               return (

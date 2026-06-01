@@ -18,12 +18,13 @@ export default async function LetterPage({ params }: Props) {
 
   if (!MVP_LANGUAGES.includes(language as Language)) notFound();
 
+  const lang = language as Language;
   const upperLetter = letter.toUpperCase();
-  const letterData = LETTER_DATA[upperLetter];
+  const letterData = LETTER_DATA[lang][upperLetter];
   if (!letterData) notFound();
 
   // Gate: locked letters redirect to the grid
-  if (!isLetterFree(upperLetter)) {
+  if (!isLetterFree(upperLetter, lang)) {
     const { hasPaid } = await getAccessContext();
     if (!hasPaid) {
       redirect(`/phonics/${language}`);
@@ -33,7 +34,7 @@ export default async function LetterPage({ params }: Props) {
   return (
     <LetterDetail
       letter={upperLetter}
-      language={language as Language}
+      language={lang}
       letterData={letterData}
     />
   );

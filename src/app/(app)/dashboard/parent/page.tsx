@@ -17,7 +17,7 @@ import Certificate from "@/components/ui/Certificate";
 import type { Child, CertificateType, ChildWithClass } from "@/types";
 import { CERTIFICATE_CONFIGS, CLASS_LABELS } from "@/types";
 
-const ALPHABET = Object.keys(LETTER_DATA);
+const ALPHABET = Object.keys(LETTER_DATA.english);
 const NUMBERS = ["1","2","3","4","5","6","7","8","9","10"];
 const TOTAL_WORLD = Object.keys(WORLD_ITEMS).length; // 24
 

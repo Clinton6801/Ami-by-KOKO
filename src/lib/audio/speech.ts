@@ -9,6 +9,7 @@ const LANGUAGE_BCP47: Record<Language, string> = {
   yoruba: "yo",
   igbo: "ig",
   hausa: "ha",
+  french: "fr-FR", // French pronunciation
 };
 
 interface PlayLetterSoundOptions {

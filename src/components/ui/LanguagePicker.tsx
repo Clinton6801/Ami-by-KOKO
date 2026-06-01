@@ -10,6 +10,7 @@ const LANGUAGE_LABELS: Record<Language, string> = {
   yoruba: "Yorùbá",
   igbo: "Igbo",
   hausa: "Hausa",
+  french: "Français",
 };
 
 interface LanguagePickerProps {

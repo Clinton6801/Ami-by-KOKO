@@ -2,7 +2,7 @@
 
 export type UserRole = 'parent' | 'school_admin'
 
-export type Language = 'english' | 'yoruba' | 'igbo' | 'hausa'
+export type Language = 'english' | 'yoruba' | 'igbo' | 'hausa' | 'french'
 
 export type AppMode = 'phonics' | 'dj_booth' | 'story'
 
@@ -13,7 +13,7 @@ export type AmiMood = 'happy' | 'curious' | 'celebrating' | 'neutral'
 // ─── MVP language constants ───────────────────────────────────────────────────
 
 export const MVP_LANGUAGES: Language[] = ['english', 'yoruba']
-export const ALL_LANGUAGES: Language[] = ['english', 'yoruba', 'igbo', 'hausa']
+export const ALL_LANGUAGES: Language[] = ['english', 'yoruba', 'igbo', 'hausa', 'french']
 
 // ─── Database Row Types (mirrors Supabase schema) ────────────────────────────
 
@@ -86,12 +86,16 @@ export interface LanguageConfig {
 /** Config for a single letter within a language */
 export interface LetterConfig {
   letter: string
+  displayLetter?: string    // for special characters like Ẹ/ẹ, GB/gb
   phonetic: string          // how Kòkò says it
   englishWord: string       // "Apple"
   localWord: string         // "Àgbàdo"
   localWordMeaning: string  // "corn"
   audioClipPath?: string    // path in Supabase Storage or /public/audio/
   imageUrl?: string         // illustration URL (OpenMoji CDN)
+  songPath?: string         // path to letter song
+  isDigraph?: boolean       // true for GB in Yorùbá
+  hasSubscript?: boolean    // true for Ẹ, Ọ, Ṣ
 }
 
 // ─── Story Mode Types ─────────────────────────────────────────────────────────

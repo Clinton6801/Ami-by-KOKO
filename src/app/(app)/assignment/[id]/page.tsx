@@ -34,7 +34,7 @@ interface Props {
 function getItemData(key: string, subject: string) {
   if (subject === "literacy") {
     const upper = key.toUpperCase();
-    const data = LETTER_DATA[upper];
+    const data = LETTER_DATA.english[upper];
     return {
       display: upper,
       subtitle: data ? `${data.englishWord} · ${data.localWord}` : key,
