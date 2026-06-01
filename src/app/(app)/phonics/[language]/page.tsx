@@ -82,7 +82,8 @@ export default function PhonicsGridPage({ params }: Props) {
           className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 sm:gap-3">
           {alphabet.map((data, i) => {
             const colour = CARD_COLOURS[i % CARD_COLOURS.length];
-            const word = lang === "yoruba" ? data.localWord : data.englishWord;
+            // Show the word in the language being learned (localWord for non-English)
+            const word = lang === "english" ? data.englishWord : data.localWord;
             const mastered = masteredLetters.includes(data.letter);
             const locked = !hasPaid && !isLetterFree(data.letter, lang);
 
