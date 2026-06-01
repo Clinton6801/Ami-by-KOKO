@@ -10,6 +10,7 @@ import SongButton from "@/components/ui/SongButton";
 import Certificate from "@/components/ui/Certificate";
 import { playLetterSound } from "@/lib/audio/speech";
 import { getLetterSong } from "@/lib/audio/songs";
+import { getClipUrl } from "@/lib/audio/clips";
 import { isLetterFree } from "@/lib/access";
 import { fireConfetti } from "@/lib/confetti";
 import { useProgress } from "@/hooks/useProgress";
@@ -77,7 +78,8 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
   async function handlePlay() {
     if (speaking) return;
     setSpeaking(true);
-    await playLetterSound({ letter, language, audioClipUrl: letterData.audioClipPath });
+    const clipUrl = getClipUrl(language, letter);
+    await playLetterSound({ letter, language, audioClipUrl: clipUrl ?? undefined });
     setSpeaking(false);
   }
 

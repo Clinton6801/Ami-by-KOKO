@@ -8,6 +8,7 @@ import { openPaystackPopup, generateReference, PRICING } from "@/lib/paystack/cl
 const LANGUAGES = [
   { code: "english", label: "English", emoji: "🇬🇧", free: true,  description: "Full A–Z phonics",          comingSoon: false },
   { code: "yoruba",  label: "Yorùbá",  emoji: "🇳🇬", free: false, description: "₦1,500/month · Launching soon", comingSoon: true  },
+  { code: "french",  label: "Français", emoji: "🇫🇷", free: false, description: "₦1,500/month · Launching soon", comingSoon: true  },
 ];
 
 export default function PhonicsLanguagePage() {
