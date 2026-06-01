@@ -12,7 +12,7 @@ export type AmiMood = 'happy' | 'curious' | 'celebrating' | 'neutral'
 
 // ─── MVP language constants ───────────────────────────────────────────────────
 
-export const MVP_LANGUAGES: Language[] = ['english', 'yoruba']
+export const MVP_LANGUAGES: Language[] = ['english', 'yoruba', 'french']
 export const ALL_LANGUAGES: Language[] = ['english', 'yoruba', 'igbo', 'hausa', 'french']
 
 // ─── Database Row Types (mirrors Supabase schema) ────────────────────────────
