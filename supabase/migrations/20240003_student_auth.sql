@@ -58,3 +58,53 @@ CREATE POLICY "sessions: student read own"
       SELECT id FROM public.children WHERE auth_user_id = auth.uid()
     )
   );
+
+-- Students can write their own progress (INSERT)
+DROP POLICY IF EXISTS "progress: student write own" ON public.progress;
+CREATE POLICY "progress: student write own"
+  ON public.progress FOR INSERT
+  WITH CHECK (
+    child_id IN (
+      SELECT id FROM public.children WHERE auth_user_id = auth.uid()
+    )
+  );
+
+-- Students can update their own progress
+DROP POLICY IF EXISTS "progress: student update own" ON public.progress;
+CREATE POLICY "progress: student update own"
+  ON public.progress FOR UPDATE
+  USING (
+    child_id IN (
+      SELECT id FROM public.children WHERE auth_user_id = auth.uid()
+    )
+  );
+
+-- Students can write their own sessions
+DROP POLICY IF EXISTS "sessions: student write own" ON public.sessions;
+CREATE POLICY "sessions: student write own"
+  ON public.sessions FOR INSERT
+  WITH CHECK (
+    child_id IN (
+      SELECT id FROM public.children WHERE auth_user_id = auth.uid()
+    )
+  );
+
+-- Students can write their own assignment_progress
+DROP POLICY IF EXISTS "assignment_progress: student write own" ON public.assignment_progress;
+CREATE POLICY "assignment_progress: student write own"
+  ON public.assignment_progress FOR INSERT
+  WITH CHECK (
+    child_id IN (
+      SELECT id FROM public.children WHERE auth_user_id = auth.uid()
+    )
+  );
+
+-- Students can update their own assignment_progress
+DROP POLICY IF EXISTS "assignment_progress: student update own" ON public.assignment_progress;
+CREATE POLICY "assignment_progress: student update own"
+  ON public.assignment_progress FOR UPDATE
+  USING (
+    child_id IN (
+      SELECT id FROM public.children WHERE auth_user_id = auth.uid()
+    )
+  );

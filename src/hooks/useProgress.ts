@@ -25,6 +25,7 @@ export function useProgress(childId: string | null, language: Language) {
   const [numeracyProgress,  setNumeracyProgress]  = useState<LetterProgress[]>([]);
   const [worldProgress,     setWorldProgress]     = useState<LetterProgress[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [newMilestone, setNewMilestone] = useState<CertificateType | null>(null);
   const firedMilestones = useRef<Set<CertificateType>>(new Set());
@@ -35,6 +36,7 @@ export function useProgress(childId: string | null, language: Language) {
 
     async function fetchAll() {
       setLoading(true);
+      setError(null);
 
       // ── Literacy ──────────────────────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,7 +47,14 @@ export function useProgress(childId: string | null, language: Language) {
         .eq("language", language)
         .eq("subject", "literacy");
 
-      console.log("[useProgress] literacy rows:", lit?.length ?? 0, litErr ?? "ok",
+      if (litErr) {
+        console.error("[useProgress] literacy fetch failed:", litErr);
+        setError(litErr.message);
+        setLoading(false);
+        return;
+      }
+
+      console.log("[useProgress] literacy rows:", lit?.length ?? 0, "ok",
         "mastered:", lit?.filter((r: LetterProgress) => r.mastered).map((r: LetterProgress) => r.letter));
 
       // ── Numeracy ──────────────────────────────────────────────────────────
@@ -57,7 +66,14 @@ export function useProgress(childId: string | null, language: Language) {
         .eq("language", language)
         .eq("subject", "numeracy");
 
-      console.log("[useProgress] numeracy rows:", num?.length ?? 0, numErr ?? "ok");
+      if (numErr) {
+        console.error("[useProgress] numeracy fetch failed:", numErr);
+        setError(numErr.message);
+        setLoading(false);
+        return;
+      }
+
+      console.log("[useProgress] numeracy rows:", num?.length ?? 0, "ok");
 
       // ── World ─────────────────────────────────────────────────────────────
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,7 +84,14 @@ export function useProgress(childId: string | null, language: Language) {
         .eq("language", language)
         .eq("subject", "world");
 
-      console.log("[useProgress] world rows:", wld?.length ?? 0, wldErr ?? "ok");
+      if (wldErr) {
+        console.error("[useProgress] world fetch failed:", wldErr);
+        setError(wldErr.message);
+        setLoading(false);
+        return;
+      }
+
+      console.log("[useProgress] world rows:", wld?.length ?? 0, "ok");
 
       if (!cancelled) {
         setLiteracyProgress((lit as LetterProgress[]) ?? []);
@@ -224,6 +247,7 @@ export function useProgress(childId: string | null, language: Language) {
     recordCorrect,
     recordTraced,
     loading,
+    error,
     newMilestone,
     clearMilestone: () => setNewMilestone(null),
   };

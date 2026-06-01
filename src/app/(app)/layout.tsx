@@ -32,8 +32,7 @@ export default async function AppLayout({
       .select('id, name, school_id')
       .eq('auth_user_id', user.id)
       .limit(1)
-      .returns<{ id: string; name: string; school_id: string | null }[]>()
-      .single()
+      .single<{ id: string; name: string; school_id: string | null }>()
 
     profile = {
       id: user.id,

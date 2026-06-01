@@ -102,17 +102,29 @@ export default function ParentDashboardPage() {
     if (!activeChild) return;
     const child = activeChild as ChildWithClass;
     if (!child.school_id) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
-      .from("schools")
-      .select("name")
-      .eq("id", child.school_id)
-      .single()
-      .then(({ data }: { data: { name: string } | null }) => {
+
+    async function loadSchoolName() {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from("schools")
+          .select("name")
+          .eq("id", child.school_id)
+          .single();
+
+        if (error) {
+          console.error("[ParentDashboard] Failed to load school name:", error);
+          return;
+        }
+
         if (data) setSchoolName(data.name);
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeChild?.id]);
+      } catch (err) {
+        console.error("[ParentDashboard] School name fetch error:", err);
+      }
+    }
+
+    loadSchoolName();
+  }, [activeChild?.id, supabase]);
 
   // Milestone → award + show cert
   useEffect(() => {
