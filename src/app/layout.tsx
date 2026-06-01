@@ -55,7 +55,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-cream-bg antialiased">
         {children}
         <PWAManager />
-        <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
+        <Script 
+          src="https://js.paystack.co/v1/inline.js" 
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

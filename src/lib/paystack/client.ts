@@ -18,19 +18,27 @@ export interface PaystackConfig {
 /**
  * Opens the Paystack payment popup.
  * Requires the Paystack inline script to be loaded in the page.
- * Add to layout: <Script src="https://js.paystack.co/v1/inline.js" />
+ * Add to layout: <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
  */
 export function openPaystackPopup(config: PaystackConfig): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const PaystackPop = (window as any).PaystackPop;
 
   if (!PaystackPop) {
-    console.error("Paystack inline script not loaded.");
+    console.error("Paystack inline script not loaded. Please ensure the script is loaded in the page layout.");
+    alert("Payment system is loading. Please try again in a moment.");
+    return;
+  }
+
+  const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+  if (!publicKey || publicKey.includes("your-public-key")) {
+    console.error("Paystack public key is not configured. Please set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY in .env.local");
+    alert("Payment system is not configured. Please contact support.");
     return;
   }
 
   const handler = PaystackPop.setup({
-    key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+    key: publicKey,
     email: config.email,
     amount: config.amount,
     ref: config.reference,

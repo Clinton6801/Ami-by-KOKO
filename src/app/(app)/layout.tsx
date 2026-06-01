@@ -27,12 +27,17 @@ export default async function AppLayout({
   if (isStudentEmail(user.email)) {
     // ── Student account ──────────────────────────────────────────────────────
     // Fetch the child record by auth_user_id — works on any device, no localStorage.
-    const { data: child } = await supabase
+    const { data: child, error: childError } = await supabase
       .from('children')
       .select('id, name, school_id')
       .eq('auth_user_id', user.id)
       .limit(1)
       .single<{ id: string; name: string; school_id: string | null }>()
+
+    if (childError) {
+      console.error('[AppLayout] Failed to fetch student child record:', childError)
+      redirect('/auth/login')
+    }
 
     profile = {
       id: user.id,
@@ -43,13 +48,14 @@ export default async function AppLayout({
     }
   } else {
     // ── Parent or school admin ───────────────────────────────────────────────
-    const { data: profileData } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single<Profile>()
 
-    if (!profileData) {
+    if (profileError || !profileData) {
+      console.error('[AppLayout] Failed to fetch parent profile:', profileError)
       redirect('/auth/login')
     }
 
