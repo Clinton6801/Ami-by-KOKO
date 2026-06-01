@@ -27,39 +27,92 @@ export default async function AppLayout({
   if (isStudentEmail(user.email)) {
     // ── Student account ──────────────────────────────────────────────────────
     // Fetch the child record by auth_user_id — works on any device, no localStorage.
-    const { data: child, error: childError } = await supabase
-      .from('children')
-      .select('id, name, school_id')
-      .eq('auth_user_id', user.id)
-      .limit(1)
-      .single<{ id: string; name: string; school_id: string | null }>()
+    try {
+      const { data: child, error: childError } = await supabase
+        .from('children')
+        .select('id, name, school_id')
+        .eq('auth_user_id', user.id)
+        .limit(1)
+        .single<{ id: string; name: string; school_id: string | null }>()
 
-    if (childError) {
-      console.error('[AppLayout] Failed to fetch student child record:', childError)
-      redirect('/auth/login')
-    }
+      if (childError) {
+        console.error('[AppLayout] Student child fetch error:', {
+          code: childError.code,
+          message: childError.message,
+          details: childError.details,
+          hint: childError.hint,
+          userId: user.id,
+        })
+        throw new Error(`Failed to load student profile: ${childError.message}`)
+      }
 
-    profile = {
-      id: user.id,
-      role: 'parent',                          // treated as parent for nav/layout purposes
-      full_name: child?.name ?? 'Student',
-      school_id: child?.school_id ?? user.user_metadata?.school_id ?? null,
-      created_at: user.created_at ?? new Date().toISOString(),
+      profile = {
+        id: user.id,
+        role: 'parent',                          // treated as parent for nav/layout purposes
+        full_name: child?.name ?? 'Student',
+        school_id: child?.school_id ?? user.user_metadata?.school_id ?? null,
+        created_at: user.created_at ?? new Date().toISOString(),
+      }
+    } catch (err) {
+      console.error('[AppLayout] Student account error:', err)
+      throw err
     }
   } else {
     // ── Parent or school admin ───────────────────────────────────────────────
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single<Profile>()
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single<Profile>()
 
-    if (profileError || !profileData) {
-      console.error('[AppLayout] Failed to fetch parent profile:', profileError)
-      redirect('/auth/login')
+      if (profileError) {
+        console.error('[AppLayout] Parent profile fetch error:', {
+          code: profileError.code,
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+          userId: user.id,
+        })
+        
+        // If profile doesn't exist (PGRST116), try to create it
+        if (profileError.code === 'PGRST116') {
+          console.log('[AppLayout] Profile not found, attempting to create...')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: newProfile, error: createError }: { data: Profile | null; error: any } = await (supabase as any)
+            .from('profiles')
+            .insert({
+              id: user.id,
+              role: 'parent',
+              full_name: user.user_metadata?.full_name ?? '',
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('[AppLayout] Failed to create profile:', createError)
+            throw new Error(`Failed to create parent profile: ${createError.message}`)
+          }
+
+          if (!newProfile) {
+            throw new Error('Profile creation returned no data')
+          }
+
+          console.log('[AppLayout] Profile created successfully')
+          profile = newProfile
+        } else {
+          throw new Error(`Failed to load parent profile: ${profileError.message}`)
+        }
+      } else if (!profileData) {
+        console.error('[AppLayout] Parent profile not found for user:', user.id)
+        throw new Error('Parent profile not found. Please sign up again.')
+      } else {
+        profile = profileData
+      }
+    } catch (err) {
+      console.error('[AppLayout] Parent account error:', err)
+      throw err
     }
-
-    profile = profileData
   }
 
   return (
