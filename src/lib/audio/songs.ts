@@ -41,7 +41,7 @@ const LETTER_SONG_WORDS: Record<string, { word: string; meaning: string; sound: 
   Z: { word: "Zebra",    meaning: "zebra",             sound: "Zuh" },
 };
 
-export function getLetterSong(letter: string): SongData {
+export function getLetterSong(letter: string, language: string = "english"): SongData {
   const upper = letter.toUpperCase();
   const data = LETTER_SONG_WORDS[upper] ?? { word: letter, meaning: "", sound: upper };
   const lyrics = [
@@ -54,7 +54,7 @@ export function getLetterSong(letter: string): SongData {
   return {
     key: upper,
     lyrics,
-    audioPath: `/audio/songs/letters/${upper.toLowerCase()}-song.mp3`,
+    audioPath: `/audio/songs/letters/${language}/${upper.toLowerCase()}-song.mp3`,
   };
 }
 

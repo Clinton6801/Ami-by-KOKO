@@ -44,8 +44,8 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
   const [showCertificate, setShowCertificate] = useState<CertificateType | null>(null);
   const milestoneShowing = useRef(false);
 
-  const song = getLetterSong(letter);
-  const songLocked = !hasPaid && !isLetterFree(letter);
+  const song = getLetterSong(letter, language);
+  const songLocked = !hasPaid && !isLetterFree(letter, language);
 
   // When a milestone fires here (on the letter page), award it and show the cert
   useEffect(() => {

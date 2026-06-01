@@ -41,9 +41,54 @@ export async function playLetterSound({
 async function tryPlayClip(url: string): Promise<boolean> {
   return new Promise((resolve) => {
     const audio = new Audio(url);
-    audio.onended = () => resolve(true);
-    audio.onerror = () => resolve(false); // clip not found — fall back to TTS
-    audio.play().catch(() => resolve(false));
+    let resolved = false;
+
+    const cleanup = () => {
+      audio.pause();
+      audio.src = "";
+    };
+
+    audio.onended = () => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(true);
+      }
+    };
+
+    audio.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(false); // clip not found — fall back to TTS
+      }
+    };
+
+    audio.onabort = () => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(false);
+      }
+    };
+
+    // Set a timeout in case the audio never fires any event
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve(false);
+      }
+    }, 2000);
+
+    audio.play().catch(() => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        cleanup();
+        resolve(false);
+      }
+    });
   });
 }
 
