@@ -1,6 +1,7 @@
 /**
  * Access control utilities — pure functions for checking free vs paid content.
  * These are server-safe and can be called from both Server and Client Components.
+ * NO "use client" directive — this is a pure server module.
  *
  * Free tier limits:
  * - English letters: A–F only
