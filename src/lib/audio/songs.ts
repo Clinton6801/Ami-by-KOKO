@@ -63,7 +63,7 @@ export function getLetterSong(letter: string, language: string = "english"): Son
 const NUMBER_WORDS = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten"];
 const NUMBER_ITEMS = ["","mango","oranges","bananas","grapes","strawberries","yams","broccoli","carrots","peppers","ears of corn"];
 
-export function getNumberSong(num: number): SongData {
+export function getNumberSong(num: number, language: string = "english"): SongData {
   const word = NUMBER_WORDS[num] ?? String(num);
   const item = NUMBER_ITEMS[num] ?? "things";
 
@@ -76,7 +76,7 @@ export function getNumberSong(num: number): SongData {
   return {
     key: String(num),
     lyrics: lines.join(" "),
-    audioPath: `/audio/songs/numbers/${num}-song.mp3`,
+    audioPath: `/audio/songs/numbers/${language}/${num}-song.mp3`,
   };
 }
 
