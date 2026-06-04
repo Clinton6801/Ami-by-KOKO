@@ -4,7 +4,7 @@
  */
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/supabase/getAccessContext";
-import { isNumberFree } from "@/lib/access";
+import { isNumberFree } from "@/lib/access-utils";
 import NumberDetailContent from "./_content";
 
 interface Props { params: Promise<{ language: string; number: string }> }
