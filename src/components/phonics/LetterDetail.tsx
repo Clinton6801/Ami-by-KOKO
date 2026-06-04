@@ -42,6 +42,7 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
   const [showTrace, setShowTrace] = useState(false);
   const [checkState, setCheckState] = useState<CheckState>("idle");
   const [showCertificate, setShowCertificate] = useState<CertificateType | null>(null);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<'sound' | 'song' | null>(null);
   const milestoneShowing = useRef(false);
 
   const song = getLetterSong(letter, language);
@@ -78,9 +79,11 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
   async function handlePlay() {
     if (speaking) return;
     setSpeaking(true);
+    setCurrentlyPlaying('sound');
     const clipUrl = getClipUrl(language, letter);
     await playLetterSound({ letter, language, audioClipUrl: clipUrl ?? undefined });
     setSpeaking(false);
+    setCurrentlyPlaying(null);
   }
 
   async function handleCorrect() {
@@ -157,11 +160,11 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
       {/* ── Kòkò sound button ── */}
       <motion.button
         onClick={handlePlay}
-        disabled={speaking}
+        disabled={speaking || currentlyPlaying === 'song'}
         whileTap={{ scale: 0.93 }}
         animate={speaking ? { scale: [1, 1.05, 1] } : {}}
         transition={{ repeat: speaking ? Infinity : 0, duration: 0.5 }}
-        className="w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-amber-100 p-4 sm:p-5 flex items-center gap-4 transition hover:shadow-lg disabled:opacity-70"
+        className={`w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-amber-100 p-4 sm:p-5 flex items-center gap-4 transition hover:shadow-lg ${currentlyPlaying === 'song' ? 'opacity-50 cursor-not-allowed' : 'disabled:opacity-70'}`}
         aria-label={`Hear Kòkò say the letter ${letter}`}
       >
         <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0">
@@ -169,7 +172,7 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
         </div>
         <div className="flex-1 text-left">
           <p className="font-bold text-stone-800 text-sm sm:text-base">
-            {speaking ? "Kòkò is speaking…" : "Tap to hear Kòkò!"}
+            {speaking ? "Kòkò is speaking…" : currentlyPlaying === 'song' ? "Song is playing…" : "Tap to hear Kòkò!"}
           </p>
           <p className="text-stone-500 text-xs sm:text-sm">
             Phonetic: <span className="font-mono text-amber-600">/{letterData.phonetic}/</span>
@@ -185,6 +188,7 @@ export default function LetterDetail({ letter, language, letterData }: LetterDet
         song={song}
         label="🎵 Sing with Kòkò"
         locked={songLocked}
+        soundPlaying={currentlyPlaying === 'sound'}
       />
 
       {/* ── Did you get it right? ── */}

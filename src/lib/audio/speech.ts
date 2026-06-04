@@ -3,6 +3,7 @@
  * Primary audio source is always the pre-recorded native speaker clips.
  */
 import type { Language } from "@/types";
+import { audioManager } from "./audioManager";
 
 const LANGUAGE_BCP47: Record<Language, string> = {
   english: "en-NG", // Nigerian English accent preferred
@@ -40,55 +41,21 @@ export async function playLetterSound({
 
 async function tryPlayClip(url: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const audio = new Audio(url);
-    let resolved = false;
+    audioManager.play(url, () => {
+      resolve(true);
+    });
 
-    const cleanup = () => {
-      audio.pause();
-      audio.src = "";
-    };
-
-    audio.onended = () => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(true);
-      }
-    };
-
-    audio.onerror = () => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(false); // clip not found — fall back to TTS
-      }
-    };
-
-    audio.onabort = () => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(false);
-      }
-    };
-
-    // Set a timeout in case the audio never fires any event
+    // Set a timeout in case the audio never fires an event
     const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        cleanup();
-        resolve(false);
-      }
+      resolve(false);
     }, 2000);
 
-    audio.play().catch(() => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        cleanup();
-        resolve(false);
-      }
-    });
+    // If file not found, Web Speech will kick in via onerror in audioManager
+    const audio = new Audio(url);
+    audio.onerror = () => {
+      clearTimeout(timeout);
+      resolve(false);
+    };
   });
 }
 
@@ -98,6 +65,9 @@ async function speakWithTTS(letter: string, language: Language): Promise<void> {
       resolve();
       return;
     }
+
+    // Stop any playing audio before starting TTS
+    audioManager.stop();
 
     const utterance = new SpeechSynthesisUtterance(letter);
     utterance.lang = LANGUAGE_BCP47[language];
@@ -110,3 +80,4 @@ async function speakWithTTS(letter: string, language: Language): Promise<void> {
     window.speechSynthesis.speak(utterance);
   });
 }
+

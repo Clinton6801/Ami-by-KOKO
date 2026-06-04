@@ -10,9 +10,10 @@ interface SongButtonProps {
   label?: string;
   locked?: boolean;
   onLockedTap?: () => void;
+  soundPlaying?: boolean;
 }
 
-export default function SongButton({ song, label, locked, onLockedTap }: SongButtonProps) {
+export default function SongButton({ song, label, locked, onLockedTap, soundPlaying }: SongButtonProps) {
   const { activeChild } = useChild();
   const { play, stop, isPlaying } = useSong(activeChild?.id);
 
@@ -26,7 +27,8 @@ export default function SongButton({ song, label, locked, onLockedTap }: SongBut
     return (
       <button
         onClick={handleClick}
-        className="w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-stone-100 p-4 flex items-center gap-4 transition opacity-70"
+        disabled={soundPlaying}
+        className={`w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-stone-100 p-4 flex items-center gap-4 transition opacity-70 ${soundPlaying ? 'opacity-50 cursor-not-allowed' : ''}`}
         aria-label={`${label ?? "Sing with Kòkò"} — locked`}
       >
         <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center text-3xl">🔒</div>
@@ -42,8 +44,9 @@ export default function SongButton({ song, label, locked, onLockedTap }: SongBut
   return (
     <motion.button
       onClick={handleClick}
-      whileTap={{ scale: 0.93 }}
-      className="w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-violet-100 p-4 flex items-center gap-4 transition hover:shadow-lg"
+      disabled={soundPlaying}
+      whileTap={{ scale: soundPlaying ? 1 : 0.93 }}
+      className={`w-full max-w-sm bg-white rounded-3xl shadow-md ring-1 ring-violet-100 p-4 flex items-center gap-4 transition hover:shadow-lg ${soundPlaying ? 'opacity-50 cursor-not-allowed' : ''}`}
       aria-label={isPlaying ? "Stop song" : (label ?? "Sing with Kòkò")}
     >
       {/* Kòkò dancing emoji */}
@@ -60,7 +63,7 @@ export default function SongButton({ song, label, locked, onLockedTap }: SongBut
           {isPlaying ? "Kòkò is singing… 🎵" : (label ?? "🎵 Sing with Kòkò")}
         </p>
         <p className="text-stone-500 text-xs">
-          {isPlaying ? "Tap to stop" : "Tap to hear the song"}
+          {soundPlaying ? "Letter sound is playing…" : isPlaying ? "Tap to stop" : "Tap to hear the song"}
         </p>
       </div>
 

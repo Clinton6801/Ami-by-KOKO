@@ -12,6 +12,7 @@
  */
 import { useState, useRef, useCallback } from "react";
 import type { SongData } from "@/lib/audio/songs";
+import { audioManager } from "@/lib/audio/audioManager";
 import { awardCertificate } from "@/lib/awardCertificate";
 
 const ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -19,16 +20,10 @@ const ALL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 export function useSong(childId?: string | null) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasClip, setHasClip] = useState<boolean | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  // Track which letter songs have been played this session
   const playedLetters = useRef<Set<string>>(new Set());
 
   const stop = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
-    }
+    audioManager.stop();
     if (typeof window !== "undefined") {
       window.speechSynthesis?.cancel();
     }
@@ -42,9 +37,6 @@ export function useSong(childId?: string | null) {
     // 1. Try the pre-recorded MP3
     const played = await tryPlayClip(song.audioPath, () => {
       setIsPlaying(false);
-      audioRef.current = null;
-    }, (audio) => {
-      audioRef.current = audio;
     });
 
     if (played) {
@@ -87,22 +79,24 @@ export function useSong(childId?: string | null) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function tryPlayClip(
-  url: string,
-  onEnd: () => void,
-  onAudio: (audio: HTMLAudioElement) => void
-): Promise<boolean> {
+function tryPlayClip(url: string, onEnd: () => void): Promise<boolean> {
   return new Promise((resolve) => {
-    const audio = new Audio(url);
-    audio.oncanplaythrough = () => {
-      onAudio(audio);
-      audio.play().catch(() => resolve(false));
+    audioManager.play(url, () => {
+      onEnd();
       resolve(true);
+    });
+
+    // Set a timeout in case the audio doesn't fire any event
+    const timeout = setTimeout(() => {
+      resolve(false);
+    }, 2000);
+
+    // Check if file exists by creating a test audio element
+    const testAudio = new Audio(url);
+    testAudio.onerror = () => {
+      clearTimeout(timeout);
+      resolve(false);
     };
-    audio.onended = onEnd;
-    audio.onerror = () => resolve(false);
-    audio.load();
-    setTimeout(() => resolve(false), 1500);
   });
 }
 
