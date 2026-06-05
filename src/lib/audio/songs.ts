@@ -1,7 +1,8 @@
 /**
  * Song data — lyrics and audio file paths for all letter, number, and world songs.
  * Audio files go in /public/audio/songs/[type]/[key]-song.mp3
- * Web Speech API TTS is used as fallback when MP3 is not available.
+ * If an MP3 file does not exist, the song button will appear greyed out / "Coming soon"
+ * with no fallback (no Web Speech API TTS).
  */
 
 export interface SongData {

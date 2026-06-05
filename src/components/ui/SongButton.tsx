@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useSong } from "@/hooks/useSong";
 import { useChild } from "@/hooks/useChild";
 import type { SongData } from "@/lib/audio/songs";
+import { useEffect, useState } from "react";
 
 interface SongButtonProps {
   song: SongData;
@@ -15,9 +16,15 @@ interface SongButtonProps {
 
 export default function SongButton({ song, label, locked, onLockedTap, soundPlaying }: SongButtonProps) {
   const { activeChild } = useChild();
-  const { play, stop, isPlaying } = useSong(activeChild?.id);
+  const { play, stop, isPlaying, checkExists } = useSong(activeChild?.id);
+  const [songExists, setSongExists] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkExists(song.audioPath).then(setSongExists);
+  }, [song.audioPath, checkExists]);
 
   function handleClick() {
+    if (songExists === false) return; // Do nothing if song doesn't exist
     if (locked) { onLockedTap?.(); return; }
     if (isPlaying) { stop(); return; }
     play(song);
@@ -37,6 +44,23 @@ export default function SongButton({ song, label, locked, onLockedTap, soundPlay
           <p className="text-stone-400 text-xs">Unlock Explorer to sing along</p>
         </div>
         <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full">Explorer</span>
+      </button>
+    );
+  }
+
+  if (songExists === false) {
+    return (
+      <button
+        disabled
+        className="w-full max-w-sm bg-stone-100 rounded-3xl shadow-md ring-1 ring-stone-200 p-4 flex items-center gap-4 opacity-60 cursor-not-allowed"
+        aria-label={`${label ?? "Sing with Kòkò"} — coming soon`}
+      >
+        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center text-3xl opacity-50">🦜</div>
+        <div className="flex-1 text-left">
+          <p className="font-bold text-stone-500 text-sm">{label ?? "🎵 Sing with Kòkò"}</p>
+          <p className="text-stone-400 text-xs">Coming soon</p>
+        </div>
+        <span className="text-xs font-bold text-stone-400 bg-stone-200 px-2 py-1 rounded-full">Soon</span>
       </button>
     );
   }

@@ -41,21 +41,39 @@ export async function playLetterSound({
 
 async function tryPlayClip(url: string): Promise<boolean> {
   return new Promise((resolve) => {
-    audioManager.play(url, () => {
-      resolve(true);
-    });
+    let resolved = false;
 
-    // Set a timeout in case the audio never fires an event
+    // Create audio element to check if file exists before playing
+    const testAudio = new Audio(url);
     const timeout = setTimeout(() => {
-      resolve(false);
-    }, 2000);
+      if (!resolved) {
+        resolved = true;
+        resolve(false);
+      }
+    }, 1000); // 1 second should be enough to detect 404
 
-    // If file not found, Web Speech will kick in via onerror in audioManager
-    const audio = new Audio(url);
-    audio.onerror = () => {
+    testAudio.oncanplay = () => {
       clearTimeout(timeout);
-      resolve(false);
+      if (!resolved) {
+        resolved = true;
+        // File exists, now play it
+        audioManager.play(url, () => {
+          // Audio finished playing
+        });
+        resolve(true);
+      }
     };
+
+    testAudio.onerror = () => {
+      clearTimeout(timeout);
+      if (!resolved) {
+        resolved = true;
+        resolve(false);
+      }
+    };
+
+    // Start loading the audio
+    testAudio.load();
   });
 }
 
