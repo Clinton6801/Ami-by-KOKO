@@ -46,6 +46,11 @@ async function getClients() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+  
+  console.log("[getClients] Admin client created:", {
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
+    hasServiceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+  });
 
   return { anonClient, serviceClient, adminClient };
 }
@@ -158,38 +163,116 @@ export async function POST(request: NextRequest) {
     
     console.log("[POST students] Step 2b: Creating auth account...", { email, passwordLength: password.length });
 
-    const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // skip email confirmation
-      user_metadata: {
-        role: "student",
-        child_id: child.id,
-        school_id: schoolId,
-      },
-    });
-
-    console.log("[POST students] Step 2b result:", { authUserId: authUser?.user?.id, error: authErr?.message });
-
-    if (authErr) {
-      console.error("[POST students] Step 2b failed: Auth creation error", authErr);
-    } else if (authUser?.user?.id) {
-      // Step 3: Link auth_user_id back to the children row
-      console.log("[POST students] Step 3: Updating auth_user_id on child record...");
-      
+    // Check if auth account already exists from a previous attempt
+    console.log("[POST students] Step 2b: Checking for existing auth account...");
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: updateErr } = await (serviceClient as any)
-        .from("children")
-        .update({ auth_user_id: authUser.user.id })
-        .eq("id", child.id);
+      const { data: listData } = await (adminClient.auth.admin as any).listUsers();
+      const existingUser = listData?.users?.find((u: any) => u.email === email);
       
-      console.log("[POST students] Step 3 result:", { error: updateErr?.message });
-      
-      if (!updateErr) {
-        child.auth_user_id = authUser.user.id;
-        console.log("[POST students] Auth account successfully created and linked");
+      if (existingUser) {
+        console.log("[POST students] Step 2b: Found existing auth account, reusing:", existingUser.id);
+        
+        // Auth account exists — just update auth_user_id in children table
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: updateErr } = await (serviceClient as any)
+          .from("children")
+          .update({ auth_user_id: existingUser.id })
+          .eq("id", child.id);
+        
+        if (updateErr) {
+          console.error("[POST students] Step 2b: Failed to link existing auth account:", updateErr);
+        } else {
+          child.auth_user_id = existingUser.id;
+          console.log("[POST students] Step 2b: Successfully reused existing auth account");
+        }
       } else {
-        console.error("[POST students] Step 3 failed: Could not update auth_user_id", updateErr);
+        // Create new auth account
+        console.log("[POST students] Step 2b: No existing account found, creating new one...");
+        const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true, // skip email confirmation
+          user_metadata: {
+            role: "student",
+            child_id: child.id,
+            school_id: schoolId,
+          },
+        });
+
+        console.log("[POST students] Step 2b auth result:", { 
+          authUserId: authUser?.user?.id, 
+          errorCode: authErr?.status,
+          errorMessage: authErr?.message,
+          errorDetails: JSON.stringify(authErr)
+        });
+
+        if (authErr) {
+          console.error("[POST students] Step 2b FULL error:", JSON.stringify({
+            message: authErr.message,
+            status: authErr.status,
+            code: (authErr as any).code,
+            details: authErr,
+          }));
+        } else if (authUser?.user?.id) {
+          // Step 3: Link auth_user_id back to the children row
+          console.log("[POST students] Step 3: Updating auth_user_id on child record...");
+          
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: updateErr } = await (serviceClient as any)
+            .from("children")
+            .update({ auth_user_id: authUser.user.id })
+            .eq("id", child.id);
+          
+          console.log("[POST students] Step 3 result:", { error: updateErr?.message });
+          
+          if (!updateErr) {
+            child.auth_user_id = authUser.user.id;
+            console.log("[POST students] Auth account successfully created and linked");
+          } else {
+            console.error("[POST students] Step 3 failed: Could not update auth_user_id", updateErr);
+          }
+        }
+      }
+    } catch (listErr) {
+      console.error("[POST students] Step 2b: Failed to list users:", listErr);
+      // If listUsers fails, try creating anyway
+      console.log("[POST students] Step 2b: Attempting to create auth account despite listUsers failure...");
+      const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // skip email confirmation
+        user_metadata: {
+          role: "student",
+          child_id: child.id,
+          school_id: schoolId,
+        },
+      });
+
+      console.log("[POST students] Step 2b auth result (retry):", { 
+        authUserId: authUser?.user?.id, 
+        errorCode: authErr?.status,
+        errorMessage: authErr?.message,
+      });
+
+      if (authErr) {
+        console.error("[POST students] Step 2b FULL error (retry):", JSON.stringify({
+          message: authErr.message,
+          status: authErr.status,
+          code: (authErr as any).code,
+          details: authErr,
+        }));
+      } else if (authUser?.user?.id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: updateErr } = await (serviceClient as any)
+          .from("children")
+          .update({ auth_user_id: authUser.user.id })
+          .eq("id", child.id);
+        
+        if (!updateErr) {
+          child.auth_user_id = authUser.user.id;
+          console.log("[POST students] Auth account successfully created and linked (retry)");
+        }
       }
     }
   } else {
