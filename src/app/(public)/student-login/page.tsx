@@ -212,6 +212,8 @@ function PinStep({
       const { data, error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
 
       if (!signInErr && data.session) {
+        // Store child ID in localStorage for useChild hook fallback
+        localStorage.setItem("activeChildId", student.id);
         window.location.href = "/home";
         return;
       }
