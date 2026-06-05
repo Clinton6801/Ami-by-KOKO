@@ -86,18 +86,31 @@ function studentPassword(schoolCode: string, pin: string): string {
 // ─── POST — create student ────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
+  console.log("[POST students] Starting student creation");
+  console.log("[POST students] Service role key present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
   const body = await request.json();
   const { schoolId, name, age, cls, term, pin, avatar } = body;
+  console.log("[POST students] Received body:", { schoolId, name, age, cls, term, pin: pin ? "***" : null, avatar });
 
   if (!schoolId || !name?.trim()) {
+    console.log("[POST students] Validation failed: missing schoolId or name");
     return NextResponse.json({ error: "schoolId and name are required." }, { status: 400 });
   }
 
+  console.log("[POST students] Getting clients...");
   const { anonClient, serviceClient, adminClient } = await getClients();
+  console.log("[POST students] Clients created successfully");
+  
   const auth = await verifyAdmin(anonClient, schoolId);
-  if (auth instanceof NextResponse) return auth;
+  if (auth instanceof NextResponse) {
+    console.log("[POST students] Admin verification failed");
+    return auth;
+  }
+  console.log("[POST students] Admin verified:", auth.userId);
 
-  // 1. Create the children row first to get the child ID
+  // Step 1: Create the children row first to get the child ID
+  console.log("[POST students] Step 1: Inserting child into database...");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: child, error: childErr } = await (serviceClient as any)
     .from("children")
@@ -113,24 +126,41 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
+  console.log("[POST students] Step 1 result:", { childId: child?.id, error: childErr?.message });
+  
   if (childErr || !child) {
+    console.error("[POST students] Step 1 failed:", childErr);
     return NextResponse.json({ error: friendlyError(childErr, "Failed to add student.") }, { status: 500 });
   }
 
-  // 2. Create Supabase auth account (only if PIN is set — PIN is required for login)
+  // Step 2: Create Supabase auth account (only if PIN is set — PIN is required for login)
   if (pin) {
+    console.log("[POST students] Step 2: PIN provided, fetching school code...");
+    
     // Fetch school_code for password construction
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: school } = await (serviceClient as any)
+    const { data: school, error: schoolErr } = await (serviceClient as any)
       .from("schools")
       .select("school_code")
       .eq("id", schoolId)
       .single();
+    
+    console.log("[POST students] Step 2a result:", { schoolCode: school?.school_code, error: schoolErr?.message });
+    
+    if (schoolErr || !school?.school_code) {
+      console.error("[POST students] Step 2a failed: Could not fetch school code");
+      // Continue anyway — use schoolId as fallback
+    }
+    
     const schoolCode = (school?.school_code ?? schoolId).toUpperCase();
+    const email = studentEmail(child.id);
+    const password = studentPassword(schoolCode, pin);
+    
+    console.log("[POST students] Step 2b: Creating auth account...", { email, passwordLength: password.length });
 
     const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
-      email: studentEmail(child.id),
-      password: studentPassword(schoolCode, pin),
+      email,
+      password,
       email_confirm: true, // skip email confirmation
       user_metadata: {
         role: "student",
@@ -139,28 +169,44 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!authErr && authUser?.user) {
-      // 3. Link auth_user_id back to the children row
+    console.log("[POST students] Step 2b result:", { authUserId: authUser?.user?.id, error: authErr?.message });
+
+    if (authErr) {
+      console.error("[POST students] Step 2b failed: Auth creation error", authErr);
+    } else if (authUser?.user?.id) {
+      // Step 3: Link auth_user_id back to the children row
+      console.log("[POST students] Step 3: Updating auth_user_id on child record...");
+      
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (serviceClient as any)
+      const { error: updateErr } = await (serviceClient as any)
         .from("children")
         .update({ auth_user_id: authUser.user.id })
         .eq("id", child.id);
-
-      child.auth_user_id = authUser.user.id;
+      
+      console.log("[POST students] Step 3 result:", { error: updateErr?.message });
+      
+      if (!updateErr) {
+        child.auth_user_id = authUser.user.id;
+        console.log("[POST students] Auth account successfully created and linked");
+      } else {
+        console.error("[POST students] Step 3 failed: Could not update auth_user_id", updateErr);
+      }
     }
-    // Auth creation failure is non-fatal — student can still be added manually
-    // and the admin can edit to trigger auth creation on next save
+  } else {
+    console.log("[POST students] No PIN provided - skipping auth account creation");
   }
 
+  console.log("[POST students] Returning student:", { childId: child.id, name: child.name, hasAuth: !!child.auth_user_id });
   return NextResponse.json({ student: child });
 }
 
 // ─── PATCH — update student ───────────────────────────────────────────────────
 
 export async function PATCH(request: NextRequest) {
+  console.log("[PATCH students] Starting student update");
   const body = await request.json();
   const { schoolId, studentId, name, age, cls, term, pin, avatar } = body;
+  console.log("[PATCH students] Received:", { schoolId, studentId, name, pin: pin ? "***" : null });
 
   if (!schoolId || !studentId) {
     return NextResponse.json({ error: "schoolId and studentId are required." }, { status: 400 });
@@ -171,12 +217,15 @@ export async function PATCH(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   // Fetch current child to check existing auth_user_id and PIN
+  console.log("[PATCH students] Fetching existing student record...");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing } = await (serviceClient as any)
     .from("children")
     .select("auth_user_id, student_pin")
     .eq("id", studentId)
     .single();
+  
+  console.log("[PATCH students] Existing record:", { auth_user_id: existing?.auth_user_id, pin: existing?.student_pin ? "***" : null });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (serviceClient as any)
@@ -194,7 +243,12 @@ export async function PATCH(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: friendlyError(error, "Failed to update student.") }, { status: 500 });
+  if (error) {
+    console.error("[PATCH students] Database update failed:", error);
+    return NextResponse.json({ error: friendlyError(error, "Failed to update student.") }, { status: 500 });
+  }
+
+  console.log("[PATCH students] Database update successful");
 
   // Fetch school_code for password construction
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,12 +264,18 @@ export async function PATCH(request: NextRequest) {
     if (existing?.auth_user_id) {
       // Auth account exists — update password only if PIN changed
       if (pin !== existing?.student_pin) {
-        await adminClient.auth.admin.updateUserById(existing.auth_user_id, {
+        console.log("[PATCH students] PIN changed - updating auth password");
+        const { error: updateErr } = await adminClient.auth.admin.updateUserById(existing.auth_user_id, {
           password: studentPassword(schoolCode, pin),
         });
+        if (updateErr) console.error("[PATCH students] Password update failed:", updateErr);
+        else console.log("[PATCH students] Password updated successfully");
+      } else {
+        console.log("[PATCH students] PIN unchanged - no auth update needed");
       }
     } else {
-      // No auth account yet — create one now (regardless of whether PIN changed)
+      // No auth account yet — create one now
+      console.log("[PATCH students] No auth account yet - creating new one");
       const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email: studentEmail(studentId),
         password: studentPassword(schoolCode, pin),
@@ -223,14 +283,16 @@ export async function PATCH(request: NextRequest) {
         user_metadata: { role: "student", child_id: studentId, school_id: schoolId },
       });
       if (authErr) {
-        console.error("[students PATCH] auth create error:", authErr);
-      } else if (authUser?.user) {
+        console.error("[PATCH students] Auth create error:", authErr);
+      } else if (authUser?.user?.id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (serviceClient as any)
+        const { error: linkErr } = await (serviceClient as any)
           .from("children")
           .update({ auth_user_id: authUser.user.id })
           .eq("id", studentId);
-        console.log("[students PATCH] auth account created:", authUser.user.id);
+        
+        if (linkErr) console.error("[PATCH students] Link auth_user_id failed:", linkErr);
+        else console.log("[PATCH students] Auth account created and linked:", authUser.user.id);
       }
     }
   }
