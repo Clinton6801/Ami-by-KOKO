@@ -189,6 +189,8 @@ export async function POST(request: NextRequest) {
       } else {
         // Create new auth account
         console.log("[POST students] Step 2b: No existing account found, creating new one...");
+        console.log("[POST students] Step 2b: Payload:", { email, passwordLength: password.length });
+        
         const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
           email,
           password,
@@ -238,25 +240,23 @@ export async function POST(request: NextRequest) {
       console.error("[POST students] Step 2b: Failed to list users:", listErr);
       // If listUsers fails, try creating anyway
       console.log("[POST students] Step 2b: Attempting to create auth account despite listUsers failure...");
+      
+      // Try with minimal parameters first
+      console.log("[POST students] Step 2b (minimal): Creating with email and password only...");
       const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email,
         password,
-        email_confirm: true, // skip email confirmation
-        user_metadata: {
-          role: "student",
-          child_id: child.id,
-          school_id: schoolId,
-        },
+        email_confirm: true,
       });
 
-      console.log("[POST students] Step 2b auth result (retry):", { 
+      console.log("[POST students] Step 2b (minimal) result:", { 
         authUserId: authUser?.user?.id, 
         errorCode: authErr?.status,
         errorMessage: authErr?.message,
       });
 
       if (authErr) {
-        console.error("[POST students] Step 2b FULL error (retry):", JSON.stringify({
+        console.error("[POST students] Step 2b FULL error (minimal):", JSON.stringify({
           message: authErr.message,
           status: authErr.status,
           code: (authErr as any).code,
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
         
         if (!updateErr) {
           child.auth_user_id = authUser.user.id;
-          console.log("[POST students] Auth account successfully created and linked (retry)");
+          console.log("[POST students] Auth account successfully created and linked (minimal)");
         }
       }
     }
