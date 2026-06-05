@@ -15,8 +15,8 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SIZE = 160;
-const COMPLETION_THRESHOLD = 0.80; // 80% of letter pixels must be covered
-const BRUSH_RADIUS = 10; // px — how wide the child's "brush" is
+const COMPLETION_THRESHOLD = 0.70; // 70% of letter pixels must be covered
+const BRUSH_RADIUS = 7; // px — how wide the child's "brush" is
 
 interface SingleCanvasProps {
   letter: string;

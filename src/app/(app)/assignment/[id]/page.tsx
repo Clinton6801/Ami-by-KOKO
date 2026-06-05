@@ -190,6 +190,19 @@ function ItemActivity({ itemKey, subject, index, total, onComplete }: ItemActivi
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Manual submit button (fallback) */}
+      {!traced && (
+        <motion.button
+          onClick={handleTraced}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 3 }}
+          className="w-full max-w-sm bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-2xl transition shadow-md shadow-green-200"
+        >
+          ✓ Done with this one
+        </motion.button>
+      )}
     </motion.div>
   );
 }
