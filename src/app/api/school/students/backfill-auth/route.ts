@@ -126,7 +126,6 @@ export async function POST(request: NextRequest) {
           email,
           password,
           email_confirm: true,
-          user_metadata: { role: "student", child_id: student.id, school_id: schoolId },
         });
 
         if (authErr) {

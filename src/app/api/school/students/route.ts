@@ -187,35 +187,22 @@ export async function POST(request: NextRequest) {
           console.log("[POST students] Step 2b: Successfully reused existing auth account");
         }
       } else {
-        // Create new auth account
+        // Create new auth account (without user_metadata — it was causing failures)
         console.log("[POST students] Step 2b: No existing account found, creating new one...");
-        console.log("[POST students] Step 2b: Payload:", { email, passwordLength: password.length });
         
         const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
           email,
           password,
           email_confirm: true, // skip email confirmation
-          user_metadata: {
-            role: "student",
-            child_id: child.id,
-            school_id: schoolId,
-          },
         });
 
-        console.log("[POST students] Step 2b auth result:", { 
+        console.log("[POST students] Step 2b result:", { 
           authUserId: authUser?.user?.id, 
-          errorCode: authErr?.status,
-          errorMessage: authErr?.message,
-          errorDetails: JSON.stringify(authErr)
+          error: authErr?.message
         });
 
         if (authErr) {
-          console.error("[POST students] Step 2b FULL error:", JSON.stringify({
-            message: authErr.message,
-            status: authErr.status,
-            code: (authErr as any).code,
-            details: authErr,
-          }));
+          console.error("[POST students] Step 2b error:", authErr.message);
         } else if (authUser?.user?.id) {
           // Step 3: Link auth_user_id back to the children row
           console.log("[POST students] Step 3: Updating auth_user_id on child record...");
@@ -232,7 +219,7 @@ export async function POST(request: NextRequest) {
             child.auth_user_id = authUser.user.id;
             console.log("[POST students] Auth account successfully created and linked");
           } else {
-            console.error("[POST students] Step 3 failed: Could not update auth_user_id", updateErr);
+            console.error("[POST students] Step 3 failed:", updateErr.message);
           }
         }
       }
@@ -241,27 +228,19 @@ export async function POST(request: NextRequest) {
       // If listUsers fails, try creating anyway
       console.log("[POST students] Step 2b: Attempting to create auth account despite listUsers failure...");
       
-      // Try with minimal parameters first
-      console.log("[POST students] Step 2b (minimal): Creating with email and password only...");
       const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
       });
 
-      console.log("[POST students] Step 2b (minimal) result:", { 
+      console.log("[POST students] Step 2b result (retry):", { 
         authUserId: authUser?.user?.id, 
-        errorCode: authErr?.status,
-        errorMessage: authErr?.message,
+        error: authErr?.message
       });
 
       if (authErr) {
-        console.error("[POST students] Step 2b FULL error (minimal):", JSON.stringify({
-          message: authErr.message,
-          status: authErr.status,
-          code: (authErr as any).code,
-          details: authErr,
-        }));
+        console.error("[POST students] Step 2b error (retry):", authErr.message);
       } else if (authUser?.user?.id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error: updateErr } = await (serviceClient as any)
@@ -271,7 +250,7 @@ export async function POST(request: NextRequest) {
         
         if (!updateErr) {
           child.auth_user_id = authUser.user.id;
-          console.log("[POST students] Auth account successfully created and linked (minimal)");
+          console.log("[POST students] Auth account successfully created and linked (retry)");
         }
       }
     }
@@ -363,7 +342,6 @@ export async function PATCH(request: NextRequest) {
         email: studentEmail(studentId),
         password: studentPassword(schoolCode, pin),
         email_confirm: true,
-        user_metadata: { role: "student", child_id: studentId, school_id: schoolId },
       });
       if (authErr) {
         console.error("[PATCH students] Auth create error:", authErr);
