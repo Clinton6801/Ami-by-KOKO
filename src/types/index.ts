@@ -117,7 +117,21 @@ export type ClassLevel = 'sprout_1' | 'sprout_2' | 'sprout_3' | 'stepping_stone'
 
 export type Term = 1 | 2 | 3
 
-export type Subject = 'literacy' | 'numeracy' | 'world'
+export type Subject =
+  | 'literacy'
+  | 'numeracy'
+  | 'world'
+  | 'songs'
+  | 'science'
+  | 'zoology_botany'
+  | 'seasonal_creativity'
+  | 'health_habits'
+  | 'social_habits'
+  | 'colours_shapes'
+  | 'french'
+  | 'music_arts'
+  | 'practical_life'
+  | 'letter_name'
 
 export type ActivityType = 'tracing' | 'listening' | 'matching' | 'counting'
 
@@ -138,19 +152,41 @@ export const CLASS_AGES: Record<ClassLevel, string> = {
 }
 
 /** Which classes are active (content available) vs coming soon */
-export const ACTIVE_CLASSES: ClassLevel[] = ['sprout_1']
+export const ACTIVE_CLASSES: ClassLevel[] = ['sprout_1', 'sprout_2', 'sprout_3']
 
 /** Subject display names per the UI rules */
 export const SUBJECT_LABELS: Record<Subject, string> = {
   literacy: 'Literacy & Language',
   numeracy: 'Numbers & Shapes',
-  world:    'My World',
+  world: 'My World',
+  songs: 'Songs',
+  science: 'Science',
+  zoology_botany: 'Zoology & Botany',
+  seasonal_creativity: 'Seasonal Creativity',
+  health_habits: 'Health Habits',
+  social_habits: 'Social Habits',
+  colours_shapes: 'Colours & Shapes',
+  french: 'French',
+  music_arts: 'Music & Arts',
+  practical_life: 'Practical Life',
+  letter_name: 'Letter Names',
 }
 
 export const SUBJECT_EMOJIS: Record<Subject, string> = {
   literacy: '🔤',
   numeracy: '🔢',
-  world:    '🌍',
+  world: '🌍',
+  songs: '🎵',
+  science: '🔬',
+  zoology_botany: '🦁',
+  seasonal_creativity: '🎨',
+  health_habits: '💪',
+  social_habits: '👫',
+  colours_shapes: '🎨',
+  french: '🇫🇷',
+  music_arts: '🎭',
+  practical_life: '🏠',
+  letter_name: '📝',
 }
 
 /** Extended Child type with new curriculum fields */

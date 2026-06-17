@@ -53,7 +53,7 @@ function KokoFace({ speaking }: { speaking: boolean }) {
       <circle cx="52" cy="25" r="7" fill="white"/>
       <circle cx="53" cy="25" r="4.5" fill="#1C1917"/>
       <circle cx="54" cy="24" r="1.8" fill="white"/>
-      <circle cx="52" cy="25" r="7" stroke="#FCD34D" stroke-width="1.5" fill="none"/>
+      <circle cx="52" cy="25" r="7" stroke="#FCD34D" strokeWidth="1.5" fill="none"/>
       {/* Beak — opens when speaking */}
       {speaking ? (
         <>
@@ -66,9 +66,9 @@ function KokoFace({ speaking }: { speaking: boolean }) {
       {/* Sound waves when speaking */}
       {speaking && (
         <>
-          <motion.path d="M70 24 Q75 28 70 32" stroke="#F59E0B" stroke-width="2" fill="none" stroke-linecap="round"
+          <motion.path d="M70 24 Q75 28 70 32" stroke="#F59E0B" strokeWidth="2" fill="none" strokeLinecap="round"
             animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 0.6 }}/>
-          <motion.path d="M73 21 Q80 28 73 35" stroke="#F59E0B" stroke-width="1.5" fill="none" stroke-linecap="round"
+          <motion.path d="M73 21 Q80 28 73 35" stroke="#F59E0B" strokeWidth="1.5" fill="none" strokeLinecap="round"
             animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }}/>
         </>
       )}

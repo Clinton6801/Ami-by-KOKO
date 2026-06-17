@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import type { Profile } from "@/types";
+import { useChild } from "@/hooks/useChild";
+import type { Profile, ClassLevel } from "@/types";
 
 interface AppNavProps {
   profile: Profile;
@@ -24,11 +25,30 @@ const MODE_LABELS: Record<string, string> = {
   "/literacy":     "Literacy",
 };
 
+// Core subjects shown in bottom nav
+const CORE_SUBJECTS = ["/literacy", "/numeracy", "/world"];
+
+// Extended subjects (Sprout 2 & 3 only)
+const EXTENDED_SUBJECTS: Array<{ href: string; emoji: string; label: string }> = [
+  { href: "/science", emoji: "🔬", label: "Science" },
+  { href: "/zoology", emoji: "🦁", label: "Zoology" },
+  { href: "/health", emoji: "💪", label: "Health" },
+  { href: "/social", emoji: "👫", label: "Social" },
+  { href: "/colours-shapes", emoji: "🎨", label: "Colours" },
+  { href: "/seasonal", emoji: "✨", label: "Creative" },
+  { href: "/music-arts", emoji: "🎭", label: "Music" },
+  { href: "/practical-life", emoji: "🏠", label: "Life" },
+  { href: "/letter-name", emoji: "📝", label: "Spelling" },
+];
+
 export default function AppNav({ profile }: AppNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { activeChild } = useChild();
+  
   const [menuOpen, setMenuOpen] = useState(false);
+  const [subjectsMenuOpen, setSubjectsMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [childName, setChildName] = useState<string | null>(null);
@@ -39,6 +59,9 @@ export default function AppNav({ profile }: AppNavProps) {
   const currentLabel = Object.entries(MODE_LABELS).find(([key]) => pathname.startsWith(key))?.[1];
   const isSchoolAdmin = profile.role === "school_admin";
   const [isStudent, setIsStudent] = useState(false);
+  
+  // Show subject dropdown only for Sprout 2/3
+  const showSubjectsMenu = (activeChild as any)?.class && ['sprout_2', 'sprout_3'].includes((activeChild as any).class);
 
   // Detect student account and load school context
   useEffect(() => {
@@ -131,7 +154,7 @@ export default function AppNav({ profile }: AppNavProps) {
             )}
           </div>
 
-          {/* Right — child avatar + menu */}
+          {/* Right — subjects menu (Sprout 2/3) + child avatar + menu */}
           <div className="flex items-center gap-2">
             {!isHome && (
               <Link href="/home"
@@ -143,6 +166,67 @@ export default function AppNav({ profile }: AppNavProps) {
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
               </Link>
+            )}
+
+            {/* Subjects dropdown for Sprout 2/3 */}
+            {showSubjectsMenu && (
+              <div className="relative">
+                <button
+                  onClick={() => setSubjectsMenuOpen(v => !v)}
+                  className="flex items-center gap-1 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg px-2 py-1.5 transition text-xs sm:text-sm font-bold whitespace-nowrap"
+                  aria-label="More subjects"
+                  aria-expanded={subjectsMenuOpen}
+                >
+                  <span className="text-base sm:text-lg">📚</span>
+                  <span className="hidden sm:inline">More</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    className="text-green-700">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+
+                {/* Subjects dropdown menu with overlay */}
+                <AnimatePresence>
+                  {subjectsMenuOpen && (
+                    <>
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" 
+                        onClick={() => setSubjectsMenuOpen(false)} 
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-12 z-50 bg-white rounded-2xl shadow-xl ring-1 ring-green-100 py-2 w-48"
+                      >
+                        <div className="px-4 py-2.5 border-b border-green-50">
+                          <p className="font-bold text-green-800 text-sm">Other Subjects</p>
+                          <p className="text-xs text-stone-500">Explore more topics</p>
+                        </div>
+                        <div className="flex flex-col gap-0.5 max-h-[60vh] overflow-y-auto">
+                          {EXTENDED_SUBJECTS.map(subject => (
+                            <Link
+                              key={subject.href}
+                              href={subject.href}
+                              onClick={() => setSubjectsMenuOpen(false)}
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-stone-700 hover:bg-green-50 transition"
+                            >
+                              <span className="text-lg">{subject.emoji}</span>
+                              <span className="font-medium">{subject.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
 
             <button
