@@ -41,7 +41,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/settings') ||
     request.nextUrl.pathname.startsWith('/school-setup') ||
-    request.nextUrl.pathname.startsWith('/live-class')
+    request.nextUrl.pathname.startsWith('/live-class') ||
+    request.nextUrl.pathname.startsWith('/super-admin')
 
   if (isAppRoute && !user) {
     // Allow students who logged in via PIN fallback (no Supabase session)
