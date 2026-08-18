@@ -5,6 +5,14 @@
  * Setup in Paystack dashboard:
  * Settings → API Keys & Webhooks → Webhook URL:
  * https://ami-by-koko.vercel.app/api/paystack/webhook
+ *
+ * WEBHOOK FLOW:
+ * 1. User completes payment in browser
+ * 2. Paystack sends webhook event to this endpoint
+ * 3. Webhook verifies signature and finds user by email
+ * 4. Subscription is upserted to database with active=true, expires_at=30 days
+ * 5. Browser polling or real-time listener detects subscription change
+ * 6. UI updates to show unlocked letters
  */
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
@@ -34,7 +42,7 @@ export async function POST(request: NextRequest) {
     console.error("[Paystack webhook] Invalid signature");
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
-  console.log("[Paystack webhook] Signature verified");
+  console.log("[Paystack webhook] ✓ Signature verified");
 
   let event: { event: string; data: Record<string, unknown> };
   try {
@@ -53,21 +61,11 @@ export async function POST(request: NextRequest) {
     const email = (data.customer as { email: string }).email;
     const metadata = data.metadata as Record<string, string> | null;
 
-    console.log("[Paystack webhook] Processing payment for email:", email, "ref:", reference);
+    console.log("[Paystack webhook] Processing payment for email:", email, "reference:", reference, "metadata:", metadata);
 
     const supabase = getAdminClient();
 
-    // Find profile directly by email — avoids listUsers() which is slow
-    const { data: profileData, error: profileErr } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id",
-        // Sub-query: get user id from auth.users by email
-        supabase.auth.admin.listUsers().then(() => null) as unknown as string
-      )
-      .maybeSingle();
-
-    // Use direct auth admin lookup instead
+    // Find user by email using auth admin API
     const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
     if (usersErr) {
       console.error("[Paystack webhook] Failed to list users:", usersErr);
@@ -81,29 +79,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, note: "User not found" });
     }
 
-    console.log("[Paystack webhook] Found user:", user.id);
+    console.log("[Paystack webhook] ✓ Found user:", user.id);
 
     // Upsert subscription — active for 30 days
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
+    const expiresAtISO = expiresAt.toISOString();
 
-    const { error: upsertErr } = await supabase.from("subscriptions").upsert({
+    console.log("[Paystack webhook] Creating/updating subscription:", {
       profile_id: user.id,
-      plan: (metadata?.plan as "individual" | "school") ?? "individual",
-      paystack_reference: reference,
+      plan: metadata?.plan ?? "individual",
       active: true,
-      expires_at: expiresAt.toISOString(),
-    }, { onConflict: "profile_id" });
+      expires_at: expiresAtISO,
+      paystack_reference: reference,
+    });
+
+    const { data: existingSub, error: selectErr } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+
+    if (selectErr) {
+      console.error("[Paystack webhook] Error checking existing subscription:", selectErr);
+    }
+
+    const { data: upsertedData, error: upsertErr } = await supabase
+      .from("subscriptions")
+      .upsert({
+        profile_id: user.id,
+        plan: (metadata?.plan as "individual" | "school") ?? "individual",
+        paystack_reference: reference,
+        active: true,
+        expires_at: expiresAtISO,
+      }, { onConflict: "profile_id" })
+      .select();
 
     if (upsertErr) {
       console.error("[Paystack webhook] Failed to upsert subscription:", upsertErr);
-      return NextResponse.json({ error: "DB write failed" }, { status: 500 });
+      return NextResponse.json({ error: "DB write failed", details: upsertErr.message }, { status: 500 });
     }
 
-    console.log("[Paystack webhook] Subscription activated for user:", user.id);
-    return NextResponse.json({ received: true, activated: true });
+    console.log("[Paystack webhook] ✓ Subscription created/updated for user:", user.id, "Data:", upsertedData);
+    return NextResponse.json({
+      received: true,
+      activated: true,
+      user_id: user.id,
+      subscription_id: upsertedData?.[0]?.id,
+    });
   }
 
-  console.log("[Paystack webhook] Unhandled event type:", event.event);
+  console.log("[Paystack webhook] ℹ Unhandled event type:", event.event);
   return NextResponse.json({ received: true });
 }

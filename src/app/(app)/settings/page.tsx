@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useChild } from "@/hooks/useChild";
 import { useAccess } from "@/hooks/useAccess";
 import CreateChildModal from "@/components/ui/CreateChildModal";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { openPaystackPopup, generateReference, PAYSTACK_PLANS } from "@/lib/paystack/client";
 import { CLASS_LABELS, type ClassLevel } from "@/types";
 
@@ -159,6 +159,8 @@ export default function SettingsPage() {
   const [subPlan, setSubPlan] = useState<string | null>(null);
   const [subExpiry, setSubExpiry] = useState<string | null>(null);
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
+  const [paymentErrorMessage, setPaymentErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -257,15 +259,65 @@ export default function SettingsPage() {
   }
 
   function handlePlan(planKey: keyof typeof PAYSTACK_PLANS) {
-    if (!userEmail) return;
+    if (!userEmail || !userId) return;
     const plan = PAYSTACK_PLANS[planKey];
+    setPaymentStatus("processing");
+    setPaymentErrorMessage(null);
+
     openPaystackPopup({
       email: userEmail,
       amount: plan.amount,
       reference: generateReference(plan.id),
       planId: plan.id,
-      onSuccess: () => { setTimeout(() => window.location.reload(), 1500); },
-      onClose: () => {},
+      onSuccess: async (reference) => {
+        console.log("[Settings] Payment callback received, reference:", reference);
+        console.log("[Settings] Waiting for webhook to process subscription...");
+        
+        // Poll for subscription creation (max 10 seconds, check every 500ms)
+        let attempts = 0;
+        const maxAttempts = 20;
+
+        const checkInterval = setInterval(async () => {
+          attempts++;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: sub } = await (supabase as any)
+              .from("subscriptions")
+              .select("active, expires_at")
+              .eq("profile_id", userId)
+              .eq("active", true)
+              .maybeSingle();
+
+            if (sub) {
+              const now = new Date().toISOString();
+              if (!sub.expires_at || sub.expires_at > now) {
+                clearInterval(checkInterval);
+                console.log("[Settings] ✓ Subscription verified after", attempts * 500, "ms");
+                setPaymentStatus("success");
+                
+                setTimeout(() => {
+                  console.log("[Settings] Reloading page to reflect unlocked content...");
+                  window.location.reload();
+                }, 2000);
+              }
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              console.error("[Settings] ✗ Subscription not created after 10 seconds");
+              setPaymentStatus("error");
+              setPaymentErrorMessage("Payment received but subscription not confirmed. Please refresh or contact support.");
+            }
+          } catch (err) {
+            console.error("[Settings] Error checking subscription:", err);
+            if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              setPaymentStatus("error");
+            }
+          }
+        }, 500);
+      },
+      onClose: () => {
+        setPaymentStatus("idle");
+      },
     });
   }
 
@@ -505,6 +557,95 @@ export default function SettingsPage() {
             parentId={userId}
             onCreated={() => { setShowAddChild(false); window.location.reload(); }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Payment Status Modal */}
+      <AnimatePresence>
+        {paymentStatus !== "idle" && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-40"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 p-6 pb-10 max-w-lg mx-auto"
+            >
+              {paymentStatus === "processing" && (
+                <div className="text-center py-8">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="text-5xl inline-block mb-4"
+                  >
+                    ⏳
+                  </motion.div>
+                  <h2 className="text-xl font-extrabold text-stone-900 mb-2">Processing Payment</h2>
+                  <p className="text-stone-500 text-sm leading-relaxed">
+                    Please wait while we confirm your payment...
+                  </p>
+                  <p className="text-xs text-stone-400 mt-4">This usually takes a few seconds</p>
+                </div>
+              )}
+
+              {paymentStatus === "success" && (
+                <div className="text-center py-8">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                    className="text-6xl inline-block mb-4"
+                  >
+                    ✨
+                  </motion.div>
+                  <h2 className="text-2xl font-extrabold text-green-700 mb-2">Payment Successful!</h2>
+                  <p className="text-stone-600 text-sm leading-relaxed mb-4">
+                    Your subscription is now active. Reloading...
+                  </p>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="text-4xl inline-block"
+                  >
+                    🎉
+                  </motion.div>
+                </div>
+              )}
+
+              {paymentStatus === "error" && (
+                <div className="text-center py-8">
+                  <div className="text-5xl inline-block mb-4">⚠️</div>
+                  <h2 className="text-xl font-extrabold text-red-700 mb-2">Confirmation Delayed</h2>
+                  <p className="text-stone-600 text-sm leading-relaxed mb-4">
+                    {paymentErrorMessage || "Your payment was received but we couldn't confirm it immediately."}
+                  </p>
+                  <p className="text-xs text-stone-500 mb-6">
+                    Try refreshing the page. If it still doesn't work, your payment may have failed.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl transition"
+                    >
+                      Refresh Page
+                    </button>
+                    <button
+                      onClick={() => setPaymentStatus("idle")}
+                      className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-900 font-bold py-3 rounded-2xl transition"
+                    >
+                      Back
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
